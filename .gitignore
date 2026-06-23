@@ -1,0 +1,25 @@
+# Environment / secrets
+.env
+.env.*
+.env.local
+.env.production
+
+# Supabase local
+supabase/.temp
+supabase/.branches
+
+# Supabase access tokens (written by `supabase login`)
+.supabase
+*.access-token
+
+# Node
+node_modules/
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
