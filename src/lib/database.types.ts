@@ -175,6 +175,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bids_gc_company_id_fkey"
+            columns: ["gc_company_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_list"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bids_opportunity_id_fkey"
             columns: ["opportunity_id"]
             isOneToOne: true
@@ -186,31 +193,37 @@ export type Database = {
       companies: {
         Row: {
           address: string
+          city: string | null
           created_at: string
           id: string
           name: string
           notes: string | null
           region: string
+          state: string | null
           type: Database["public"]["Enums"]["company_type"]
           website: string | null
         }
         Insert: {
           address: string
+          city?: string | null
           created_at?: string
           id?: string
           name: string
           notes?: string | null
           region: string
+          state?: string | null
           type: Database["public"]["Enums"]["company_type"]
           website?: string | null
         }
         Update: {
           address?: string
+          city?: string | null
           created_at?: string
           id?: string
           name?: string
           notes?: string | null
           region?: string
+          state?: string | null
           type?: Database["public"]["Enums"]["company_type"]
           website?: string | null
         }
@@ -253,6 +266,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_list"
             referencedColumns: ["id"]
           },
         ]
@@ -386,6 +406,13 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "opportunities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_list"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_pins: {
@@ -442,6 +469,54 @@ export type Database = {
           bond_pct: number | null
           bonded_dollars: number | null
           total_dollars: number | null
+        }
+        Relationships: []
+      }
+      v_company_list: {
+        Row: {
+          address: string | null
+          city: string | null
+          created_at: string | null
+          id: string | null
+          jobs_out_for_bid: number | null
+          last_activity_at: string | null
+          name: string | null
+          notes: string | null
+          opp_count: number | null
+          region: string | null
+          state: string | null
+          type: Database["public"]["Enums"]["company_type"] | null
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          created_at?: string | null
+          id?: string | null
+          jobs_out_for_bid?: never
+          last_activity_at?: never
+          name?: string | null
+          notes?: string | null
+          opp_count?: never
+          region?: string | null
+          state?: string | null
+          type?: Database["public"]["Enums"]["company_type"] | null
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          created_at?: string | null
+          id?: string | null
+          jobs_out_for_bid?: never
+          last_activity_at?: never
+          name?: string | null
+          notes?: string | null
+          opp_count?: never
+          region?: string | null
+          state?: string | null
+          type?: Database["public"]["Enums"]["company_type"] | null
+          website?: string | null
         }
         Relationships: []
       }

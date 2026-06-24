@@ -7,10 +7,7 @@ import type { Database } from "../lib/database.types";
 type CompanyType = Database["public"]["Enums"]["company_type"];
 
 const TYPE_LABELS: Record<CompanyType, string> = {
-  GC: "GC",
-  AWARDING_AUTHORITY: "Authority",
-  PLANT_OWNER: "Plant Owner",
-  ARCHITECT: "Architect",
+  GC: "GC", AWARDING_AUTHORITY: "Authority", PLANT_OWNER: "Plant Owner", ARCHITECT: "Architect",
 };
 const TYPE_OPTIONS: { value: CompanyType; label: string }[] = [
   { value: "GC", label: "GC" },
@@ -18,6 +15,17 @@ const TYPE_OPTIONS: { value: CompanyType; label: string }[] = [
   { value: "PLANT_OWNER", label: "Plant Owner" },
   { value: "ARCHITECT", label: "Architect" },
 ];
+
+function fmtDate(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
 export default function CompaniesList() {
   const { companies, loading, createCompany } = useCompanyList();
@@ -47,7 +55,6 @@ export default function CompaniesList() {
         </button>
       </div>
 
-      {/* Search */}
       <div className="relative mb-4">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-label" />
         <input type="text" placeholder="Search companies..." value={search}
@@ -65,19 +72,29 @@ export default function CompaniesList() {
           <div className="divide-y divide-card-border">
             {filtered.map((c) => (
               <button key={c.id} onClick={() => navigate(`/companies/${c.id}`)}
-                className="w-full text-left px-5 py-4 flex items-center justify-between gap-3
-                           hover:bg-gray-50 active:bg-gray-50">
-                <div className="min-w-0">
-                  <p className="font-medium text-sm text-heading truncate">{c.name}</p>
-                  <p className="text-xs text-label">{c.region}</p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-heading">
-                    {TYPE_LABELS[c.type]}
+                className="w-full text-left px-5 py-4 hover:bg-gray-50 active:bg-gray-50">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <p className="font-medium text-sm text-heading truncate">{c.name}</p>
+                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-heading shrink-0">
+                      {TYPE_LABELS[c.type]}
+                    </span>
+                  </div>
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${
+                    c.jobs_out_for_bid > 0
+                      ? "bg-brand-light text-brand"
+                      : "bg-gray-100 text-subtle"
+                  }`}>
+                    {c.jobs_out_for_bid} out for bid
                   </span>
-                  {c.opp_count > 0 && (
-                    <span className="text-xs text-label">{c.opp_count} opp{c.opp_count !== 1 ? "s" : ""}</span>
-                  )}
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs text-label">{c.location}</p>
+                  <p className="text-[10px] text-subtle shrink-0">
+                    {c.last_activity_at
+                      ? `Last: ${fmtDate(c.last_activity_at)}`
+                      : "No activity yet"}
+                  </p>
                 </div>
               </button>
             ))}
@@ -94,12 +111,13 @@ function CreateCompanyModal({
   onCreate,
   onClose,
 }: {
-  onCreate: (input: { name: string; type: CompanyType; region: string; address: string }) => Promise<{ error: string | null }>;
+  onCreate: (input: { name: string; type: CompanyType; region: string; address: string; city?: string; state?: string }) => Promise<{ error: string | null }>;
   onClose: () => void;
 }) {
   const [name, setName] = useState("");
   const [type, setType] = useState<CompanyType>("GC");
-  const [region, setRegion] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
   const [address, setAddress] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -108,12 +126,19 @@ function CreateCompanyModal({
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    const res = await onCreate({ name: name.trim(), type, region: region.trim(), address: address.trim() });
+    const st = state.trim().toUpperCase();
+    const res = await onCreate({
+      name: name.trim(), type,
+      region: st || "—",
+      address: address.trim(),
+      city: city.trim() || undefined,
+      state: st || undefined,
+    });
     if (res.error) { setError(res.error); setSubmitting(false); }
     else onClose();
   };
 
-  const inputCls = "w-full rounded-lg border border-gray-200 px-4 py-3 text-sm text-heading focus:outline-none focus:ring-2 focus:ring-brand";
+  const cls = "w-full rounded-lg border border-gray-200 px-4 py-3 text-sm text-heading focus:outline-none focus:ring-2 focus:ring-brand";
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
@@ -124,21 +149,27 @@ function CreateCompanyModal({
         </div>
         <label className="block mb-3">
           <span className="block text-xs text-label mb-1">Company Name</span>
-          <input required value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="e.g. Turner Construction" />
+          <input required value={name} onChange={(e) => setName(e.target.value)} className={cls} placeholder="e.g. Turner Construction" />
         </label>
         <label className="block mb-3">
           <span className="block text-xs text-label mb-1">Type</span>
-          <select value={type} onChange={(e) => setType(e.target.value as CompanyType)} className={inputCls}>
+          <select value={type} onChange={(e) => setType(e.target.value as CompanyType)} className={cls}>
             {TYPE_OPTIONS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </label>
-        <label className="block mb-3">
-          <span className="block text-xs text-label mb-1">Region</span>
-          <input required value={region} onChange={(e) => setRegion(e.target.value)} className={inputCls} placeholder="e.g. MI" />
-        </label>
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <label className="block">
+            <span className="block text-xs text-label mb-1">City</span>
+            <input value={city} onChange={(e) => setCity(e.target.value)} className={cls} placeholder="Detroit" />
+          </label>
+          <label className="block">
+            <span className="block text-xs text-label mb-1">State</span>
+            <input value={state} onChange={(e) => setState(e.target.value)} className={cls} placeholder="MI" maxLength={2} />
+          </label>
+        </div>
         <label className="block mb-4">
           <span className="block text-xs text-label mb-1">Address</span>
-          <input required value={address} onChange={(e) => setAddress(e.target.value)} className={inputCls} placeholder="123 Main St, Detroit, MI" />
+          <input required value={address} onChange={(e) => setAddress(e.target.value)} className={cls} placeholder="123 Main St, Detroit, MI" />
         </label>
         {error && <p className="text-brand text-sm mb-3 text-center">{error}</p>}
         <button type="submit" disabled={submitting}

@@ -99,7 +99,9 @@ export default function CompanyDetail() {
           <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[10px] font-medium text-heading">
             {TYPE_LABELS[co.type] ?? co.type}
           </span>
-          <span className="text-xs text-label">{co.region}</span>
+          <span className="text-xs text-label">
+            {co.city && co.state ? `${co.city}, ${co.state}` : co.state ?? co.region}
+          </span>
         </div>
         <p className="text-sm text-label mt-2">{co.address}</p>
         {co.website && (
