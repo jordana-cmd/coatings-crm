@@ -177,7 +177,7 @@ export default function BidCalendarPage() {
 
   return (
     <div className="pb-16 md:pb-6">
-      <h1 className="text-xl font-bold text-white mb-4">Bid Calendar</h1>
+      <h1 className="text-xl font-semibold text-heading mb-4">Bid Calendar</h1>
 
       <div className="bg-card rounded-xl shadow-sm p-4 flex flex-col">
         {/* Header */}

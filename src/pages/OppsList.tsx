@@ -134,13 +134,15 @@ function StageColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col w-56 shrink-0 md:shrink md:w-0 md:flex-1 md:min-w-0 rounded-xl transition-colors
-        ${isOver ? "bg-brand/10 ring-2 ring-brand/30" : "bg-shell-light/30"}`}
+      className={`flex flex-col w-56 shrink-0 md:shrink md:w-0 md:flex-1 md:min-w-0 rounded-xl border transition-colors
+        ${isOver
+          ? "bg-brand/5 border-brand/30 ring-2 ring-brand/20"
+          : "bg-gray-100 border-gray-200"}`}
     >
       {/* Header */}
-      <div className="px-3 py-3 border-b border-shell-border/30">
-        <h3 className="text-sm font-semibold text-white truncate">{STAGE_LABELS[stage] ?? stage}</h3>
-        <p className="text-[10px] text-subtle mt-0.5">
+      <div className="px-3 py-3 border-b border-gray-200">
+        <h3 className="text-sm font-semibold text-heading truncate">{STAGE_LABELS[stage] ?? stage}</h3>
+        <p className="text-[10px] text-label mt-0.5">
           {opps.length} deal{opps.length !== 1 ? "s" : ""}
           {total > 0 ? ` · $${total.toLocaleString()}` : ""}
         </p>
@@ -152,7 +154,7 @@ function StageColumn({
           <DraggableCard key={opp.id} opp={opp} />
         ))}
         {opps.length === 0 && (
-          <p className="text-xs text-subtle text-center py-6">No deals</p>
+          <p className="text-xs text-label text-center py-6">No deals</p>
         )}
       </div>
     </div>
@@ -254,17 +256,17 @@ export default function OppsList() {
     <div className="pb-16 md:pb-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-        <h1 className="text-xl font-bold text-white">Pipeline</h1>
+        <h1 className="text-xl font-semibold text-heading">Pipeline</h1>
 
         <div className="flex items-center gap-2">
           {/* Pipeline switcher */}
-          <div className="flex bg-shell-light rounded-lg p-0.5">
+          <div className="flex bg-gray-200 rounded-lg p-0.5">
             {PIPELINES.map((p) => (
               <button
                 key={p}
                 onClick={() => setPipeline(p)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors
-                  ${pipeline === p ? "bg-brand text-white" : "text-subtle hover:text-white"}`}
+                  ${pipeline === p ? "bg-brand text-white" : "text-label hover:text-heading"}`}
               >
                 {PIPELINE_LABELS[p]}
               </button>

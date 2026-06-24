@@ -49,7 +49,7 @@ export default function DailyView() {
 
   return (
     <div className="space-y-4 pb-16 md:pb-6">
-      <h1 className="text-xl font-bold text-white">Today</h1>
+      <h1 className="text-xl font-semibold text-heading">Today</h1>
 
       {/* 1. Bid deadlines */}
       <Section title="Bid Deadlines" count={deadlines.length} empty="No bid deadlines today">

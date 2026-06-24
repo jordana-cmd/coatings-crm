@@ -35,7 +35,7 @@ export default function ContactsList() {
   return (
     <div className="pb-16 md:pb-6">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-white">Contacts</h1>
+        <h1 className="text-xl font-semibold text-heading">Contacts</h1>
         <button onClick={() => setShowCreate(true)}
           className="rounded-lg bg-brand text-white px-4 py-2 text-sm font-medium active:bg-brand-hover">
           + New
