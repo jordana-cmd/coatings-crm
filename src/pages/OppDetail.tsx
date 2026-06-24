@@ -12,6 +12,8 @@ import GateChecklist from "../components/gates/GateChecklist";
 import QuickLogFAB from "../components/quick-log/QuickLogFAB";
 
 import type { Database } from "../lib/database.types";
+import { useBidQuotes } from "../hooks/useBidQuotes";
+import { supabase } from "../lib/supabase";
 
 type OppUpdate = Database["public"]["Tables"]["opportunities"]["Update"];
 
@@ -133,6 +135,118 @@ function DealManagement({ opp, updateOppField, isSaving }: {
   );
 }
 
+// ── GCs Quoted card (PUBLIC_BID only) ──────────────────────────────
+
+function GCsQuotedCard({ bidQuotes }: {
+  bidQuotes: ReturnType<typeof useBidQuotes>;
+}) {
+  const { quotes, addQuote, updateQuote, removeQuote } = bidQuotes;
+  const [showAdd, setShowAdd] = useState(false);
+  const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
+  const [selGc, setSelGc] = useState("");
+  const [amt, setAmt] = useState("");
+  const [addNotes, setAddNotes] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  const carriedCount = quotes.filter((q) => q.carried_us).length;
+  const winner = quotes.find((q) => q.gc_won_award);
+
+  const loadGCs = async () => {
+    if (!supabase) return;
+    const { data } = await supabase.from("companies").select("id, name").eq("type", "GC").order("name");
+    setCompanies(data ?? []);
+  };
+
+  const handleAdd = async () => {
+    if (!selGc) return;
+    setAdding(true);
+    await addQuote(selGc, amt ? parseFloat(amt) : undefined, addNotes.trim() || undefined);
+    setSelGc(""); setAmt(""); setAddNotes(""); setShowAdd(false); setAdding(false);
+  };
+
+  const cls = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-heading focus:outline-none focus:ring-2 focus:ring-brand-ring focus:border-brand/40";
+
+  return (
+    <div className="bg-card rounded-2xl p-5" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)" }}>
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h3 className="text-xs font-semibold text-label uppercase tracking-wider">GCs Quoted</h3>
+          {quotes.length > 0 && (
+            <p className="text-[10px] text-subtle mt-0.5">
+              Quoted {quotes.length} GC{quotes.length !== 1 ? "s" : ""} · {carriedCount} carried our number
+            </p>
+          )}
+        </div>
+        <button onClick={() => { setShowAdd(true); loadGCs(); }}
+          className="text-xs text-brand font-medium">+ Add GC</button>
+      </div>
+
+      {winner && (
+        <div className="rounded-lg bg-gate-met-light border border-gate-met/20 px-3 py-2 mb-3 flex items-center gap-2">
+          <span className="text-[10px] font-bold text-gate-met bg-white rounded px-1.5 py-0.5">PRIME</span>
+          <span className="text-sm font-medium text-gate-met">Won by: {winner.gc_name}</span>
+        </div>
+      )}
+
+      {quotes.length === 0 ? (
+        <p className="text-sm text-subtle text-center py-6">No GCs quoted yet — add the GCs you sent your number to.</p>
+      ) : (
+        <div className="space-y-2">
+          {quotes.map((q) => (
+            <div key={q.id} className={`rounded-lg border p-3 ${q.gc_won_award ? "border-gate-met/30 bg-gate-met-light/30" : "border-card-border"}`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-sm font-medium text-heading">{q.gc_name}</span>
+                <button onClick={() => removeQuote(q.id)} className="text-[10px] text-subtle hover:text-dq">Remove</button>
+              </div>
+              <div className="flex items-center gap-4 text-xs">
+                {q.quoted_amount != null && (
+                  <span className="text-heading font-medium">${q.quoted_amount.toLocaleString()}</span>
+                )}
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" checked={q.carried_us}
+                    onChange={(e) => updateQuote(q.id, { carried_us: e.target.checked })}
+                    className="rounded border-gray-300 text-brand focus:ring-brand h-3.5 w-3.5" />
+                  <span className="text-label">Carried us</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" checked={q.gc_won_award}
+                    onChange={(e) => updateQuote(q.id, { gc_won_award: e.target.checked })}
+                    className="rounded border-gray-300 text-brand focus:ring-brand h-3.5 w-3.5" />
+                  <span className="text-label">GC won award</span>
+                </label>
+              </div>
+              {q.notes && <p className="text-xs text-subtle mt-1">{q.notes}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add GC form */}
+      {showAdd && (
+        <div className="mt-3 rounded-lg border border-card-border p-3 bg-gray-50/50 space-y-2">
+          <select value={selGc} onChange={(e) => setSelGc(e.target.value)} className={cls}>
+            <option value="">Select a GC...</option>
+            {companies.filter((c) => !quotes.some((q) => q.gc_company_id === c.id)).map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          <input type="number" step="0.01" value={amt} onChange={(e) => setAmt(e.target.value)}
+            placeholder="Quoted amount (optional)" className={cls} />
+          <input value={addNotes} onChange={(e) => setAddNotes(e.target.value)}
+            placeholder="Notes (optional)" className={cls} />
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setShowAdd(false)} className="px-3 py-1.5 text-xs text-label">Cancel</button>
+            <button onClick={handleAdd} disabled={!selGc || adding}
+              className="px-3 py-1.5 text-xs font-medium bg-brand text-white rounded-lg active:bg-brand-hover disabled:opacity-50">
+              {adding ? "Adding..." : "Add"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── reusable field components ──────────────────────────────────────
 
 function Toggle({ label, value, onToggle, isSaving }: {
@@ -241,6 +355,8 @@ export default function OppDetail() {
     useAdvanceStage(id ?? "", refetch);
   const { activities, refetch: refetchActivities } = useActivities(id);
   const { isPinned, pin, unpin } = usePins();
+  const isPublicBid = opp?.pipeline === "PUBLIC_BID";
+  const bidQuotes = useBidQuotes(isPublicBid ? id : undefined);
 
   if (loading) {
     return (
@@ -358,6 +474,9 @@ export default function OppDetail() {
           )}
         </div>
       </div>
+
+      {/* GCs Quoted — PUBLIC_BID only */}
+      {isPublicBid && <GCsQuotedCard bidQuotes={bidQuotes} />}
 
       {/* Activity timeline */}
       <div className="bg-card rounded-xl shadow-sm p-5">
