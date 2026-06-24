@@ -1,8 +1,22 @@
 import type { ReactNode } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+
+function NavItem({ label, path, active }: { label: string; path: string; active: boolean }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      onClick={() => navigate(path)}
+      className={`flex-1 py-1 text-center ${active ? "text-gray-900 font-medium" : "text-gray-400"}`}
+    >
+      {label}
+    </button>
+  );
+}
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
+  const location = useLocation();
 
   return (
     <div className="min-h-svh flex flex-col bg-gray-50">
@@ -25,12 +39,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
       {/* Content */}
       <main className="flex-1 p-4">{children}</main>
 
-      {/* Bottom nav — stubbed */}
-      <nav className="bg-white border-t border-gray-200 px-4 py-2 flex justify-around text-xs text-gray-400">
-        <span>Today</span>
-        <span>Calendar</span>
-        <span>Pipeline</span>
-        <span>Dashboard</span>
+      {/* Bottom nav */}
+      <nav className="bg-white border-t border-gray-200 px-4 py-2 flex text-xs">
+        <NavItem label="Today" path="/" active={location.pathname === "/"} />
+        <NavItem label="Opportunities" path="/opportunities" active={location.pathname === "/opportunities"} />
       </nav>
     </div>
   );

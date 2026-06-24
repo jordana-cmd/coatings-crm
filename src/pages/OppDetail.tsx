@@ -4,6 +4,7 @@ import { useOpportunity } from "../hooks/useOpportunity";
 import { useUpdateBids } from "../hooks/useUpdateBids";
 import { useAdvanceStage } from "../hooks/useAdvanceStage";
 import { useActivities } from "../hooks/useActivities";
+import { usePins } from "../hooks/usePins";
 import { STAGE_LABELS, PIPELINE_LABELS } from "../lib/pipelines";
 import type { Pipeline } from "../lib/pipelines";
 import StageTracker from "../components/gates/StageTracker";
@@ -200,6 +201,7 @@ export default function OppDetail() {
   const { advance, loading: advancing, error: advanceError } =
     useAdvanceStage(id ?? "", refetch);
   const { activities, refetch: refetchActivities } = useActivities(id);
+  const { isPinned, pin, unpin } = usePins();
 
   if (loading) {
     return (
@@ -231,7 +233,16 @@ export default function OppDetail() {
       </button>
 
       <div>
-        <h1 className="text-xl font-bold text-gray-900">{opp.name}</h1>
+        <div className="flex items-start justify-between gap-2">
+          <h1 className="text-xl font-bold text-gray-900">{opp.name}</h1>
+          <button
+            onClick={() => isPinned(opp.id) ? unpin(opp.id) : pin(opp.id)}
+            className={`shrink-0 text-lg mt-0.5 ${isPinned(opp.id) ? "text-yellow-500" : "text-gray-300"}`}
+            aria-label={isPinned(opp.id) ? "Unpin" : "Pin"}
+          >
+            {isPinned(opp.id) ? "\u2605" : "\u2606"}
+          </button>
+        </div>
         <p className="text-sm text-gray-500">
           {opp.company_name ?? "—"} &middot;{" "}
           {PIPELINE_LABELS[opp.pipeline as Pipeline]} &middot;{" "}
