@@ -11,6 +11,128 @@ import StageTracker from "../components/gates/StageTracker";
 import GateChecklist from "../components/gates/GateChecklist";
 import QuickLogFAB from "../components/quick-log/QuickLogFAB";
 
+import type { Database } from "../lib/database.types";
+
+type OppUpdate = Database["public"]["Tables"]["opportunities"]["Update"];
+
+const PRIORITY_COLORS: Record<string, string> = {
+  A: "bg-brand-light text-brand", B: "bg-pending-light text-pending", C: "bg-gray-100 text-label",
+};
+
+function ageInStage(stageEnteredAt: string | null): { days: number; label: string; stale: boolean } {
+  if (!stageEnteredAt) return { days: 0, label: "—", stale: false };
+  const days = Math.floor((Date.now() - new Date(stageEnteredAt).getTime()) / 86400000);
+  return { days, label: days === 0 ? "Today" : days === 1 ? "1 day" : `${days} days`, stale: days > 14 };
+}
+
+function DealManagement({ opp, updateOppField, isSaving }: {
+  opp: Database["public"]["Tables"]["opportunities"]["Row"];
+  updateOppField: <K extends keyof OppUpdate>(field: K, value: OppUpdate[K]) => Promise<void>;
+  isSaving: (f: string) => boolean;
+}) {
+  const age = ageInStage(opp.stage_entered_at);
+  const weighted = opp.amount != null && opp.win_probability != null
+    ? opp.amount * opp.win_probability / 100
+    : null;
+
+  const [editing, setEditing] = useState(false);
+  const [f, setF] = useState({
+    expected_close_date: opp.expected_close_date ?? "",
+    win_probability: opp.win_probability != null ? String(opp.win_probability) : "",
+    next_step: opp.next_step ?? "",
+    next_step_date: opp.next_step_date ?? "",
+    priority: opp.priority ?? "",
+    competitor: opp.competitor ?? "",
+  });
+
+  const save = async () => {
+    await updateOppField("expected_close_date", f.expected_close_date || null);
+    await updateOppField("win_probability", f.win_probability ? parseFloat(f.win_probability) : null);
+    await updateOppField("next_step", f.next_step || null);
+    await updateOppField("next_step_date", f.next_step_date || null);
+    await updateOppField("priority", f.priority || null);
+    await updateOppField("competitor", f.competitor || null);
+    setEditing(false);
+  };
+
+  const cls = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-heading focus:outline-none focus:ring-2 focus:ring-brand-ring focus:border-brand/40";
+
+  return (
+    <div className="bg-card rounded-2xl p-5" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)" }}>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xs font-semibold text-label uppercase tracking-wider">Deal Management</h3>
+        <button onClick={() => setEditing(!editing)}
+          className="text-xs text-brand font-medium">{editing ? "Cancel" : "Edit"}</button>
+      </div>
+
+      {editing ? (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="block text-[10px] text-label uppercase tracking-wider mb-0.5">Expected Close</label>
+              <input type="date" value={f.expected_close_date} onChange={(e) => setF(p => ({...p, expected_close_date: e.target.value}))} className={cls} /></div>
+            <div><label className="block text-[10px] text-label uppercase tracking-wider mb-0.5">Win Probability (%)</label>
+              <input type="number" min={0} max={100} value={f.win_probability} onChange={(e) => setF(p => ({...p, win_probability: e.target.value}))} className={cls} /></div>
+          </div>
+          <div><label className="block text-[10px] text-label uppercase tracking-wider mb-0.5">Next Step</label>
+            <input value={f.next_step} onChange={(e) => setF(p => ({...p, next_step: e.target.value}))} className={cls} placeholder="Follow up with estimator..." /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="block text-[10px] text-label uppercase tracking-wider mb-0.5">Next Step Date</label>
+              <input type="date" value={f.next_step_date} onChange={(e) => setF(p => ({...p, next_step_date: e.target.value}))} className={cls} /></div>
+            <div><label className="block text-[10px] text-label uppercase tracking-wider mb-0.5">Priority</label>
+              <select value={f.priority} onChange={(e) => setF(p => ({...p, priority: e.target.value}))} className={cls}>
+                <option value="">None</option><option value="A">A</option><option value="B">B</option><option value="C">C</option>
+              </select></div>
+          </div>
+          <div><label className="block text-[10px] text-label uppercase tracking-wider mb-0.5">Competitor</label>
+            <input value={f.competitor} onChange={(e) => setF(p => ({...p, competitor: e.target.value}))} className={cls} placeholder="Name of competing bidder..." /></div>
+          <button onClick={save} disabled={isSaving("priority")}
+            className="w-full rounded-lg bg-brand text-white py-2.5 text-sm font-medium active:bg-brand-hover disabled:opacity-50">
+            Save</button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div>
+            <p className="text-[10px] text-label uppercase tracking-wider">Win Probability</p>
+            <p className="text-sm font-semibold text-heading mt-0.5">{opp.win_probability != null ? `${opp.win_probability}%` : "—"}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-label uppercase tracking-wider">Weighted Amount</p>
+            <p className="text-sm font-semibold text-heading mt-0.5">{weighted != null ? `$${weighted.toLocaleString(undefined, {maximumFractionDigits: 0})}` : "—"}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-label uppercase tracking-wider">Age in Stage</p>
+            <p className={`text-sm font-semibold mt-0.5 ${age.stale ? "text-pending" : "text-heading"}`}>{age.label}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-label uppercase tracking-wider">Expected Close</p>
+            <p className="text-sm text-heading mt-0.5">{opp.expected_close_date ? new Date(opp.expected_close_date).toLocaleDateString() : "—"}</p>
+          </div>
+          <div>
+            <p className="text-[10px] text-label uppercase tracking-wider">Priority</p>
+            {opp.priority ? (
+              <span className={`inline-block mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold ${PRIORITY_COLORS[opp.priority] ?? "bg-gray-100 text-label"}`}>
+                Tier {opp.priority}
+              </span>
+            ) : <p className="text-sm text-subtle mt-0.5">—</p>}
+          </div>
+          <div>
+            <p className="text-[10px] text-label uppercase tracking-wider">Competitor</p>
+            <p className="text-sm text-heading mt-0.5">{opp.competitor ?? "—"}</p>
+          </div>
+          {opp.next_step && (
+            <div className="col-span-2 sm:col-span-3">
+              <p className="text-[10px] text-label uppercase tracking-wider">Next Step</p>
+              <p className="text-sm text-heading mt-0.5">{opp.next_step}
+                {opp.next_step_date && <span className="text-subtle ml-1">({new Date(opp.next_step_date).toLocaleDateString()})</span>}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── reusable field components ──────────────────────────────────────
 
 function Toggle({ label, value, onToggle, isSaving }: {
@@ -179,6 +301,9 @@ export default function OppDetail() {
       {saveError && (
         <div className="bg-dq-bg border border-dq-border rounded-xl p-3 text-sm text-dq text-center">{saveError}</div>
       )}
+
+      {/* Deal Management */}
+      <DealManagement opp={opp} updateOppField={updateOppField} isSaving={isSaving} />
 
       {/* Bid Details */}
       <div className="bg-card rounded-xl shadow-sm p-5">

@@ -93,6 +93,68 @@ export type Database = {
           },
         ]
       }
+      bid_quotes: {
+        Row: {
+          carried_us: boolean
+          created_at: string
+          gc_company_id: string
+          gc_won_award: boolean
+          id: string
+          notes: string | null
+          opportunity_id: string
+          quoted_amount: number | null
+        }
+        Insert: {
+          carried_us?: boolean
+          created_at?: string
+          gc_company_id: string
+          gc_won_award?: boolean
+          id?: string
+          notes?: string | null
+          opportunity_id: string
+          quoted_amount?: number | null
+        }
+        Update: {
+          carried_us?: boolean
+          created_at?: string
+          gc_company_id?: string
+          gc_won_award?: boolean
+          id?: string
+          notes?: string | null
+          opportunity_id?: string
+          quoted_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bid_quotes_gc_company_id_fkey"
+            columns: ["gc_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_quotes_gc_company_id_fkey"
+            columns: ["gc_company_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_kpis"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "bid_quotes_gc_company_id_fkey"
+            columns: ["gc_company_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_quotes_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bids: {
         Row: {
           addenda_acknowledged: boolean
@@ -416,9 +478,11 @@ export type Database = {
         Row: {
           amount: number | null
           company_id: string
+          competitor: string | null
           completed_at: string | null
           completion_notes: string | null
           created_at: string
+          expected_close_date: string | null
           final_value: number | null
           id: string
           job_site_address: string
@@ -426,21 +490,28 @@ export type Database = {
           job_site_lng: number | null
           lost_reason: string | null
           name: string
+          next_step: string | null
+          next_step_date: string | null
           owner_id: string
           pipeline: Database["public"]["Enums"]["pipeline_type"]
           prevailing_wage: boolean | null
+          priority: string | null
           project_tag: string | null
           revisit_date: string | null
           stage: string
+          stage_entered_at: string | null
           status: Database["public"]["Enums"]["opp_status"]
           updated_at: string | null
+          win_probability: number | null
         }
         Insert: {
           amount?: number | null
           company_id: string
+          competitor?: string | null
           completed_at?: string | null
           completion_notes?: string | null
           created_at?: string
+          expected_close_date?: string | null
           final_value?: number | null
           id?: string
           job_site_address: string
@@ -448,21 +519,28 @@ export type Database = {
           job_site_lng?: number | null
           lost_reason?: string | null
           name: string
+          next_step?: string | null
+          next_step_date?: string | null
           owner_id: string
           pipeline: Database["public"]["Enums"]["pipeline_type"]
           prevailing_wage?: boolean | null
+          priority?: string | null
           project_tag?: string | null
           revisit_date?: string | null
           stage: string
+          stage_entered_at?: string | null
           status?: Database["public"]["Enums"]["opp_status"]
           updated_at?: string | null
+          win_probability?: number | null
         }
         Update: {
           amount?: number | null
           company_id?: string
+          competitor?: string | null
           completed_at?: string | null
           completion_notes?: string | null
           created_at?: string
+          expected_close_date?: string | null
           final_value?: number | null
           id?: string
           job_site_address?: string
@@ -470,14 +548,19 @@ export type Database = {
           job_site_lng?: number | null
           lost_reason?: string | null
           name?: string
+          next_step?: string | null
+          next_step_date?: string | null
           owner_id?: string
           pipeline?: Database["public"]["Enums"]["pipeline_type"]
           prevailing_wage?: boolean | null
+          priority?: string | null
           project_tag?: string | null
           revisit_date?: string | null
           stage?: string
+          stage_entered_at?: string | null
           status?: Database["public"]["Enums"]["opp_status"]
           updated_at?: string | null
+          win_probability?: number | null
         }
         Relationships: [
           {

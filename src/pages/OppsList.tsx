@@ -67,22 +67,39 @@ function isValidDrop(pipeline: Pipeline, fromStage: string, toStage: string): bo
 
 // ── Opp Card ──
 
+const PRIORITY_COLORS: Record<string, string> = {
+  A: "bg-brand-light text-brand", B: "bg-pending-light text-pending", C: "bg-gray-100 text-label",
+};
+
 function OppCard({ opp, isDragOverlay }: { opp: Opp; isDragOverlay?: boolean }) {
   const navigate = useNavigate();
   const isWon = opp.status === "WON";
   const isDq = opp.status === "DISQUALIFIED";
   const isLost = opp.status === "LOST";
 
+  const ageDays = opp.stage_entered_at
+    ? Math.floor((Date.now() - new Date(opp.stage_entered_at).getTime()) / 86400000)
+    : null;
+  const stale = ageDays != null && ageDays > 14;
+  const noNextStep = !opp.next_step_date && opp.status === "OPEN";
+
   return (
     <div
       onClick={isDragOverlay ? undefined : () => navigate(`/opp/${opp.id}`)}
       className={`bg-card rounded-lg p-3 shadow-sm border cursor-pointer active:shadow-md transition-shadow
-        ${isDq ? "border-dq-border bg-dq-bg" : isWon ? "border-gate-met/30" : isLost ? "border-subtle/30" : "border-card-border"}
+        ${isDq ? "border-dq-border bg-dq-bg" : isWon ? "border-gate-met/30" : isLost ? "border-subtle/30" : stale ? "border-pending/40" : "border-card-border"}
         ${isDragOverlay ? "shadow-lg ring-2 ring-brand/30 rotate-2" : ""}`}
     >
-      <p className={`text-sm font-medium truncate ${isDq ? "text-dq line-through" : "text-heading"}`}>
-        {opp.name}
-      </p>
+      <div className="flex items-center gap-1.5">
+        <p className={`text-sm font-medium truncate flex-1 ${isDq ? "text-dq line-through" : "text-heading"}`}>
+          {opp.name}
+        </p>
+        {opp.priority && (
+          <span className={`shrink-0 rounded px-1 py-0.5 text-[9px] font-bold ${PRIORITY_COLORS[opp.priority] ?? "bg-gray-100 text-label"}`}>
+            {opp.priority}
+          </span>
+        )}
+      </div>
       <p className="text-xs text-label truncate mt-0.5">{opp.company_name ?? "—"}</p>
       <div className="flex items-center justify-between mt-2">
         {opp.amount != null ? (
@@ -90,9 +107,17 @@ function OppCard({ opp, isDragOverlay }: { opp: Opp; isDragOverlay?: boolean }) 
         ) : (
           <span className="text-xs text-subtle">No amount</span>
         )}
-        {isWon && <span className="text-[10px] font-bold text-gate-met bg-gate-met-light px-1.5 py-0.5 rounded">WON</span>}
-        {isDq && <span className="text-[10px] font-bold text-dq bg-dq-bg border border-dq-border px-1.5 py-0.5 rounded">DQ</span>}
-        {isLost && <span className="text-[10px] font-bold text-dq bg-dq-bg px-1.5 py-0.5 rounded">LOST</span>}
+        <div className="flex items-center gap-1">
+          {ageDays != null && (
+            <span className={`text-[9px] font-medium ${stale ? "text-pending" : "text-subtle"}`}>
+              {ageDays}d
+            </span>
+          )}
+          {noNextStep && <span className="w-1.5 h-1.5 rounded-full bg-pending/60 shrink-0" title="No next step" />}
+          {isWon && <span className="text-[10px] font-bold text-gate-met bg-gate-met-light px-1.5 py-0.5 rounded">WON</span>}
+          {isDq && <span className="text-[10px] font-bold text-dq bg-dq-bg border border-dq-border px-1.5 py-0.5 rounded">DQ</span>}
+          {isLost && <span className="text-[10px] font-bold text-dq bg-dq-bg px-1.5 py-0.5 rounded">LOST</span>}
+        </div>
       </div>
     </div>
   );
