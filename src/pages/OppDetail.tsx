@@ -26,14 +26,14 @@ function Toggle({
 }) {
   return (
     <div className="flex items-center justify-between py-2.5">
-      <span className="text-sm text-gray-700">{label}</span>
+      <span className="text-sm text-text-muted">{label}</span>
       <button
         type="button"
         disabled={isSaving}
         onClick={() => onToggle(!value)}
         className={`relative inline-flex h-7 w-12 shrink-0 rounded-full border-2 border-transparent
                     transition-colors duration-200 focus:outline-none
-                    ${value ? "bg-green-500" : "bg-gray-300"}
+                    ${value ? "bg-gate-met" : "bg-gray-300"}
                     ${isSaving ? "opacity-50" : ""}`}
       >
         <span
@@ -65,7 +65,7 @@ function TextInput({
 
   return (
     <div className="py-2.5">
-      <label className="block text-sm text-gray-700 mb-1">{label}</label>
+      <label className="block text-sm text-text-muted mb-1">{label}</label>
       <div className="flex gap-2">
         <input
           type={type}
@@ -75,7 +75,7 @@ function TextInput({
           placeholder={placeholder}
           disabled={isSaving}
           className="flex-1 rounded-lg border border-gray-300 px-3 py-2.5 text-sm
-                     focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent
+                     focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent
                      disabled:opacity-50"
         />
         {dirty && (
@@ -83,8 +83,8 @@ function TextInput({
             type="button"
             onClick={() => onSave(local)}
             disabled={isSaving}
-            className="rounded-lg bg-gray-900 text-white px-3 py-2.5 text-xs font-medium
-                       active:bg-gray-700 disabled:opacity-50 shrink-0"
+            className="rounded-lg bg-brand text-white px-3 py-2.5 text-xs font-medium
+                       active:bg-brand-hover disabled:opacity-50 shrink-0"
           >
             {isSaving ? "..." : "Save"}
           </button>
@@ -113,7 +113,7 @@ function NumberInput({
 
   return (
     <div className="py-2.5">
-      <label className="block text-sm text-gray-700 mb-1">{label}</label>
+      <label className="block text-sm text-text-muted mb-1">{label}</label>
       <div className="flex gap-2">
         <input
           type="number"
@@ -124,7 +124,7 @@ function NumberInput({
           placeholder={placeholder}
           disabled={isSaving}
           className="flex-1 rounded-lg border border-gray-300 px-3 py-2.5 text-sm
-                     focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent
+                     focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent
                      disabled:opacity-50"
         />
         {dirty && (
@@ -132,8 +132,8 @@ function NumberInput({
             type="button"
             onClick={() => onSave(numVal)}
             disabled={isSaving}
-            className="rounded-lg bg-gray-900 text-white px-3 py-2.5 text-xs font-medium
-                       active:bg-gray-700 disabled:opacity-50 shrink-0"
+            className="rounded-lg bg-brand text-white px-3 py-2.5 text-xs font-medium
+                       active:bg-brand-hover disabled:opacity-50 shrink-0"
           >
             {isSaving ? "..." : "Save"}
           </button>
@@ -160,7 +160,7 @@ function DateInput({
 
   return (
     <div className="py-2.5">
-      <label className="block text-sm text-gray-700 mb-1">{label}</label>
+      <label className="block text-sm text-text-muted mb-1">{label}</label>
       <div className="flex gap-2">
         <input
           type="datetime-local"
@@ -171,7 +171,7 @@ function DateInput({
           }}
           disabled={isSaving}
           className="flex-1 rounded-lg border border-gray-300 px-3 py-2.5 text-sm
-                     focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent
+                     focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent
                      disabled:opacity-50"
         />
         {dirty && (
@@ -179,8 +179,8 @@ function DateInput({
             type="button"
             onClick={() => onSave(local || null)}
             disabled={isSaving}
-            className="rounded-lg bg-gray-900 text-white px-3 py-2.5 text-xs font-medium
-                       active:bg-gray-700 disabled:opacity-50 shrink-0"
+            className="rounded-lg bg-brand text-white px-3 py-2.5 text-xs font-medium
+                       active:bg-brand-hover disabled:opacity-50 shrink-0"
           >
             {isSaving ? "..." : "Save"}
           </button>
@@ -228,13 +228,13 @@ export default function OppDetail() {
   return (
     <div className="space-y-4 pb-8">
       {/* Back + header */}
-      <button onClick={() => navigate("/")} className="text-sm text-blue-600">
+      <button onClick={() => navigate("/")} className="text-sm text-brand font-medium">
         &larr; Back
       </button>
 
       <div>
         <div className="flex items-start justify-between gap-2">
-          <h1 className="text-xl font-bold text-gray-900">{opp.name}</h1>
+          <h1 className="text-xl font-bold text-text-primary">{opp.name}</h1>
           <button
             onClick={() => isPinned(opp.id) ? unpin(opp.id) : pin(opp.id)}
             className={`shrink-0 text-lg mt-0.5 ${isPinned(opp.id) ? "text-yellow-500" : "text-gray-300"}`}
@@ -243,12 +243,12 @@ export default function OppDetail() {
             {isPinned(opp.id) ? "\u2605" : "\u2606"}
           </button>
         </div>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-text-muted">
           {opp.company_name ?? "—"} &middot;{" "}
           {PIPELINE_LABELS[opp.pipeline as Pipeline]} &middot;{" "}
           {STAGE_LABELS[opp.stage] ?? opp.stage}
         </p>
-        <p className="text-sm text-gray-400 mt-0.5">{opp.job_site_address}</p>
+        <p className="text-sm text-text-muted/60 mt-0.5">{opp.job_site_address}</p>
       </div>
 
       {/* Stage tracker */}
@@ -268,8 +268,8 @@ export default function OppDetail() {
       )}
 
       {/* Editable bid fields */}
-      <div className="rounded-xl bg-white border border-gray-200 p-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-1">
+      <div className="rounded-xl bg-surface border border-gray-200 p-4 shadow-sm">
+        <h3 className="text-sm font-semibold text-text-primary mb-1">
           Bid Details
         </h3>
         <div className="divide-y divide-gray-100">
@@ -324,8 +324,8 @@ export default function OppDetail() {
       </div>
 
       {/* Walk section */}
-      <div className="rounded-xl bg-white border border-gray-200 p-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-1">
+      <div className="rounded-xl bg-surface border border-gray-200 p-4 shadow-sm">
+        <h3 className="text-sm font-semibold text-text-primary mb-1">
           Pre-Bid Walk
         </h3>
         <div className="divide-y divide-gray-100">
@@ -356,8 +356,8 @@ export default function OppDetail() {
       </div>
 
       {/* Bond section */}
-      <div className="rounded-xl bg-white border border-gray-200 p-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-1">
+      <div className="rounded-xl bg-surface border border-gray-200 p-4 shadow-sm">
+        <h3 className="text-sm font-semibold text-text-primary mb-1">
           Bond
         </h3>
         <div className="divide-y divide-gray-100">
@@ -389,12 +389,12 @@ export default function OppDetail() {
       </div>
 
       {/* Activity timeline */}
-      <div className="rounded-xl bg-white border border-gray-200 p-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">
+      <div className="rounded-xl bg-surface border border-gray-200 p-4 shadow-sm">
+        <h3 className="text-sm font-semibold text-text-primary mb-3">
           Activity Log
         </h3>
         {activities.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-4">
+          <p className="text-sm text-text-muted text-center py-4">
             No activities yet — tap + to log one.
           </p>
         ) : (
@@ -404,8 +404,8 @@ export default function OppDetail() {
                 <div className="shrink-0 mt-0.5">
                   <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
                     a.pending
-                      ? "bg-yellow-100 text-yellow-700"
-                      : "bg-gray-100 text-gray-600"
+                      ? "bg-amber-50 text-pending border border-amber-200"
+                      : "bg-gray-100 text-text-muted"
                   }`}>
                     {a.type}
                   </span>

@@ -10,9 +10,9 @@ interface Props {
 export default function StageTracker({ opp }: Props) {
   if (opp.pipeline === "PUBLIC_BID" && isDisqualified(opp)) {
     return (
-      <div className="rounded-xl bg-red-50 border-2 border-red-300 p-4 text-center">
-        <p className="text-red-700 font-bold text-lg">DISQUALIFIED</p>
-        <p className="text-red-600 text-sm mt-1">
+      <div className="rounded-xl bg-dq-bg border-2 border-dq-border p-4 text-center">
+        <p className="text-dq font-bold text-lg">DISQUALIFIED</p>
+        <p className="text-dq/70 text-sm mt-1">
           Mandatory pre-bid walk missed — cannot bid
         </p>
       </div>
@@ -34,16 +34,16 @@ export default function StageTracker({ opp }: Props) {
 
         if (isTerminal) {
           bg = "bg-gray-100";
-          text = "text-gray-400";
+          text = "text-gate-unmet";
         } else if (idx < currentIdx) {
-          bg = "bg-green-100";
-          text = "text-green-700";
+          bg = "bg-gate-met/15";
+          text = "text-gate-met";
         } else if (idx === currentIdx) {
-          bg = "bg-gray-900";
+          bg = "bg-brand";
           text = "text-white";
         } else {
           bg = "bg-gray-100";
-          text = "text-gray-400";
+          text = "text-gate-unmet";
         }
 
         return (
@@ -60,8 +60,8 @@ export default function StageTracker({ opp }: Props) {
         <div
           className={`rounded-lg px-2.5 py-1.5 text-xs font-medium whitespace-nowrap shrink-0 ${
             opp.stage === "LOST"
-              ? "bg-red-100 text-red-700"
-              : "bg-yellow-100 text-yellow-700"
+              ? "bg-dq-bg text-dq border border-dq-border"
+              : "bg-amber-50 text-pending"
           }`}
         >
           {STAGE_LABELS[opp.stage] ?? opp.stage}

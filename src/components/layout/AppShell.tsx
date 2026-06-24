@@ -7,7 +7,8 @@ function NavItem({ label, path, active }: { label: string; path: string; active:
   return (
     <button
       onClick={() => navigate(path)}
-      className={`flex-1 py-1 text-center ${active ? "text-gray-900 font-medium" : "text-gray-400"}`}
+      className={`flex-1 py-2 text-center text-xs font-medium transition-colors
+        ${active ? "text-brand" : "text-gray-400 active:text-gray-200"}`}
     >
       {label}
     </button>
@@ -19,17 +20,19 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const location = useLocation();
 
   return (
-    <div className="min-h-svh flex flex-col bg-gray-50">
+    <div className="min-h-svh flex flex-col bg-body">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <span className="font-bold text-gray-900">Coatings CRM</span>
+      <header className="bg-shell px-4 py-3 flex items-center justify-between">
+        <span className="font-bold text-white text-sm tracking-tight">
+          Motor City Floors
+        </span>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500 truncate max-w-[180px]">
+          <span className="text-xs text-gray-400 truncate max-w-[140px]">
             {user?.email}
           </span>
           <button
             onClick={signOut}
-            className="text-sm text-red-600 font-medium active:text-red-800"
+            className="text-xs text-brand font-medium active:text-brand-hover"
           >
             Sign out
           </button>
@@ -40,7 +43,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <main className="flex-1 p-4">{children}</main>
 
       {/* Bottom nav */}
-      <nav className="bg-white border-t border-gray-200 px-4 py-2 flex text-xs">
+      <nav className="bg-shell border-t border-shell-darker px-4 flex">
         <NavItem label="Today" path="/" active={location.pathname === "/"} />
         <NavItem label="Calendar" path="/calendar" active={location.pathname === "/calendar"} />
         <NavItem label="Opportunities" path="/opportunities" active={location.pathname === "/opportunities"} />

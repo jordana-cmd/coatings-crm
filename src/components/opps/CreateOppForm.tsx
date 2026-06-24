@@ -83,7 +83,7 @@ export default function CreateOppForm({ onSubmit, onClose }: Props) {
   };
 
   const inputClass =
-    "w-full rounded-lg border border-gray-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent";
+    "w-full rounded-lg border border-gray-300 px-4 py-3 text-base text-text-primary focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent";
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center">
@@ -92,7 +92,7 @@ export default function CreateOppForm({ onSubmit, onClose }: Props) {
         className="w-full max-w-lg bg-white rounded-t-2xl sm:rounded-2xl p-6 max-h-[90svh] overflow-y-auto"
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-900">
+          <h2 className="text-lg font-bold text-text-primary">
             New Public Bid
           </h2>
           <button
@@ -154,7 +154,7 @@ export default function CreateOppForm({ onSubmit, onClose }: Props) {
                 setAddingCompany(!addingCompany);
                 setCompanyId("");
               }}
-              className="text-sm text-blue-600 font-medium"
+              className="text-sm text-brand font-medium"
             >
               {addingCompany ? "Pick existing" : "+ Add new"}
             </button>
@@ -222,8 +222,8 @@ export default function CreateOppForm({ onSubmit, onClose }: Props) {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-lg bg-gray-900 text-white py-3 text-base font-medium
-                     active:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full rounded-lg bg-brand text-white py-3 text-base font-medium
+                     active:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitting ? "Creating..." : "Create Opportunity"}
         </button>

@@ -37,12 +37,12 @@ export default function QuickLogFAB({ opportunityId, onLogged }: Props) {
         <div className="fixed bottom-36 right-4 z-40">
           {pending > 0 && (
             <div className={`rounded-full px-3 py-1 text-xs font-medium shadow mb-1
-                           ${syncing ? "bg-blue-100 text-blue-700" : "bg-yellow-100 text-yellow-700"}`}>
+                           ${syncing ? "bg-blue-100 text-blue-700" : "bg-amber-50 text-pending border border-amber-200"}`}>
               {syncing ? "Syncing..." : `${pending} pending`}
             </div>
           )}
           {failed > 0 && (
-            <div className="rounded-full bg-red-100 text-red-700 px-3 py-1 text-xs font-medium shadow">
+            <div className="rounded-full bg-dq-bg text-dq border border-dq-border px-3 py-1 text-xs font-medium shadow">
               {failed} failed
             </div>
           )}
@@ -52,8 +52,8 @@ export default function QuickLogFAB({ opportunityId, onLogged }: Props) {
       {/* FAB */}
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-20 right-4 h-14 w-14 rounded-full bg-gray-900 text-white text-2xl
-                   shadow-lg flex items-center justify-center active:bg-gray-700 z-40"
+        className="fixed bottom-20 right-4 h-14 w-14 rounded-full bg-brand text-white text-2xl
+                   shadow-lg flex items-center justify-center active:bg-brand-hover z-40"
         aria-label="Log activity"
       >
         +

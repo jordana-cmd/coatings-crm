@@ -48,7 +48,7 @@ export default function QuickLogSheet({ onLog, onClose }: Props) {
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center">
       <div className="w-full max-w-lg bg-white rounded-t-2xl p-5 max-h-[80svh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-900">
+          <h2 className="text-lg font-bold text-text-primary">
             {step === 1 ? "Log Activity" : "Confirm"}
           </h2>
           <button
@@ -67,10 +67,10 @@ export default function QuickLogSheet({ onLog, onClose }: Props) {
                 key={t.value}
                 onClick={() => handleTypeSelect(t.value)}
                 className="flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-gray-200
-                           bg-gray-50 p-5 text-center active:bg-gray-100 active:border-gray-400"
+                           bg-surface p-5 text-center active:border-brand active:bg-brand/5"
               >
                 <span className="text-2xl">{t.icon}</span>
-                <span className="text-sm font-medium text-gray-700">{t.label}</span>
+                <span className="text-sm font-medium text-text-primary">{t.label}</span>
               </button>
             ))}
           </div>
@@ -79,7 +79,7 @@ export default function QuickLogSheet({ onLog, onClose }: Props) {
             <div className="flex items-center gap-2 mb-2">
               <button
                 onClick={() => setStep(1)}
-                className="text-sm text-blue-600"
+                className="text-sm text-brand"
               >
                 &larr; Change
               </button>
@@ -95,7 +95,7 @@ export default function QuickLogSheet({ onLog, onClose }: Props) {
               placeholder="Note (optional)"
               rows={2}
               className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm
-                         focus:outline-none focus:ring-2 focus:ring-gray-900"
+                         focus:outline-none focus:ring-2 focus:ring-brand"
             />
 
             <input
@@ -103,7 +103,7 @@ export default function QuickLogSheet({ onLog, onClose }: Props) {
               onChange={(e) => setNextAction(e.target.value)}
               placeholder="Next action (optional)"
               className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm
-                         focus:outline-none focus:ring-2 focus:ring-gray-900"
+                         focus:outline-none focus:ring-2 focus:ring-brand"
             />
 
             {nextAction && (
@@ -112,14 +112,14 @@ export default function QuickLogSheet({ onLog, onClose }: Props) {
                 value={nextActionAt}
                 onChange={(e) => setNextActionAt(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm
-                           focus:outline-none focus:ring-2 focus:ring-gray-900"
+                           focus:outline-none focus:ring-2 focus:ring-brand"
               />
             )}
 
             <button
               onClick={handleConfirm}
-              className="w-full rounded-lg bg-gray-900 text-white py-3 text-base font-medium
-                         active:bg-gray-700"
+              className="w-full rounded-lg bg-brand text-white py-3 text-base font-medium
+                         active:bg-brand-hover"
             >
               Log it
             </button>
