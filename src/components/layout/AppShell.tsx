@@ -42,6 +42,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       {/* Bottom nav */}
       <nav className="bg-white border-t border-gray-200 px-4 py-2 flex text-xs">
         <NavItem label="Today" path="/" active={location.pathname === "/"} />
+        <NavItem label="Calendar" path="/calendar" active={location.pathname === "/calendar"} />
         <NavItem label="Opportunities" path="/opportunities" active={location.pathname === "/opportunities"} />
       </nav>
     </div>

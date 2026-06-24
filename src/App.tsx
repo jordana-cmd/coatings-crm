@@ -6,6 +6,7 @@ import AppShell from "./components/layout/AppShell";
 import DailyView from "./pages/DailyView";
 import OppsList from "./pages/OppsList";
 import OppDetail from "./pages/OppDetail";
+import BidCalendarPage from "./pages/BidCalendarPage";
 
 function App() {
   return (
@@ -39,6 +40,16 @@ function App() {
               <ProtectedRoute>
                 <AppShell>
                   <OppDetail />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/calendar"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <BidCalendarPage />
                 </AppShell>
               </ProtectedRoute>
             }
