@@ -3,10 +3,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useOpportunity } from "../hooks/useOpportunity";
 import { useUpdateBids } from "../hooks/useUpdateBids";
 import { useAdvanceStage } from "../hooks/useAdvanceStage";
+import { useActivities } from "../hooks/useActivities";
 import { STAGE_LABELS, PIPELINE_LABELS } from "../lib/pipelines";
 import type { Pipeline } from "../lib/pipelines";
 import StageTracker from "../components/gates/StageTracker";
 import GateChecklist from "../components/gates/GateChecklist";
+import QuickLogFAB from "../components/quick-log/QuickLogFAB";
 
 // ── reusable field components ──────────────────────────────────────
 
@@ -197,6 +199,7 @@ export default function OppDetail() {
     useUpdateBids(id ?? "", refetch);
   const { advance, loading: advancing, error: advanceError } =
     useAdvanceStage(id ?? "", refetch);
+  const { activities, refetch: refetchActivities } = useActivities(id);
 
   if (loading) {
     return (
@@ -373,6 +376,52 @@ export default function OppDetail() {
           )}
         </div>
       </div>
+
+      {/* Activity timeline */}
+      <div className="rounded-xl bg-white border border-gray-200 p-4">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">
+          Activity Log
+        </h3>
+        {activities.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-4">
+            No activities yet — tap + to log one.
+          </p>
+        ) : (
+          <ul className="space-y-3">
+            {activities.map((a) => (
+              <li key={a.id} className="flex gap-3 text-sm">
+                <div className="shrink-0 mt-0.5">
+                  <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                    a.pending
+                      ? "bg-yellow-100 text-yellow-700"
+                      : "bg-gray-100 text-gray-600"
+                  }`}>
+                    {a.type}
+                  </span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  {a.note && (
+                    <p className="text-gray-700">{a.note}</p>
+                  )}
+                  {a.next_action && (
+                    <p className="text-gray-500 text-xs mt-0.5">
+                      Next: {a.next_action}
+                      {a.next_action_at && ` (${new Date(a.next_action_at).toLocaleDateString()})`}
+                    </p>
+                  )}
+                  <p className="text-gray-400 text-xs mt-0.5">
+                    {new Date(a.logged_at).toLocaleString()}
+                    {a.pending && " · pending sync"}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Quick-log FAB */}
+      <QuickLogFAB opportunityId={opp.id} onLogged={refetchActivities} />
     </div>
   );
 }
