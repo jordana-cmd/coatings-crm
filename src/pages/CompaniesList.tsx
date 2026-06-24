@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from "react";
+import { useState, useMemo, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { useCompanyList } from "../hooks/useCompanyList";
+import { useCompanyList, type CompanyListItem } from "../hooks/useCompanyList";
 import { Search } from "lucide-react";
 import type { Database } from "../lib/database.types";
 
@@ -19,23 +19,89 @@ const TYPE_OPTIONS: { value: CompanyType; label: string }[] = [
 function fmtDate(iso: string): string {
   const d = new Date(iso);
   const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffDays = Math.floor(diffMs / 86400000);
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000);
   if (diffDays === 0) return "Today";
   if (diffDays === 1) return "Yesterday";
   if (diffDays < 7) return `${diffDays}d ago`;
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
+// ── Sorting ──
+
+type SortKey = "name" | "type" | "city" | "state" | "jobs_out_for_bid" | "last_activity_at";
+type SortDir = "asc" | "desc";
+
+function sortCompanies(list: CompanyListItem[], key: SortKey, dir: SortDir): CompanyListItem[] {
+  return [...list].sort((a, b) => {
+    let av: string | number | null;
+    let bv: string | number | null;
+
+    switch (key) {
+      case "name": av = a.name.toLowerCase(); bv = b.name.toLowerCase(); break;
+      case "type": av = a.type; bv = b.type; break;
+      case "city": av = a.city?.toLowerCase() ?? null; bv = b.city?.toLowerCase() ?? null; break;
+      case "state": av = a.state?.toLowerCase() ?? null; bv = b.state?.toLowerCase() ?? null; break;
+      case "jobs_out_for_bid": av = a.jobs_out_for_bid; bv = b.jobs_out_for_bid; break;
+      case "last_activity_at": av = a.last_activity_at; bv = b.last_activity_at; break;
+    }
+
+    // Nulls last regardless of direction
+    if (av == null && bv == null) return 0;
+    if (av == null) return 1;
+    if (bv == null) return -1;
+
+    let cmp: number;
+    if (typeof av === "number" && typeof bv === "number") {
+      cmp = av - bv;
+    } else {
+      cmp = String(av).localeCompare(String(bv));
+    }
+    return dir === "asc" ? cmp : -cmp;
+  });
+}
+
+// ── Table header ──
+
+function Th({ label, sortKey, active, dir, onSort }: {
+  label: string; sortKey: SortKey; active: boolean; dir: SortDir; onSort: (k: SortKey) => void;
+}) {
+  return (
+    <th className="px-4 py-3 text-left text-xs font-medium text-label uppercase tracking-wide cursor-pointer select-none hover:text-heading"
+      onClick={() => onSort(sortKey)}>
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {active && (
+          <span className="text-brand text-[10px]">{dir === "asc" ? "\u25B2" : "\u25BC"}</span>
+        )}
+      </span>
+    </th>
+  );
+}
+
+// ── Main ──
+
 export default function CompaniesList() {
   const { companies, loading, createCompany } = useCompanyList();
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("last_activity_at");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const navigate = useNavigate();
 
   const filtered = search
     ? companies.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
     : companies;
+
+  const sorted = useMemo(() => sortCompanies(filtered, sortKey, sortDir), [filtered, sortKey, sortDir]);
+
+  const handleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir(key === "jobs_out_for_bid" || key === "last_activity_at" ? "desc" : "asc");
+    }
+  };
 
   if (loading) {
     return (
@@ -63,43 +129,85 @@ export default function CompaniesList() {
                      focus:outline-none focus:ring-2 focus:ring-brand" />
       </div>
 
-      {filtered.length === 0 ? (
+      {sorted.length === 0 ? (
         <div className="bg-card rounded-xl shadow-sm p-12 text-center">
           <p className="text-label">{search ? "No matches" : "No companies yet."}</p>
         </div>
       ) : (
-        <div className="bg-card rounded-xl shadow-sm overflow-hidden">
-          <div className="divide-y divide-card-border">
-            {filtered.map((c) => (
-              <button key={c.id} onClick={() => navigate(`/companies/${c.id}`)}
-                className="w-full text-left px-5 py-4 hover:bg-gray-50 active:bg-gray-50">
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <p className="font-medium text-sm text-heading truncate">{c.name}</p>
-                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-heading shrink-0">
-                      {TYPE_LABELS[c.type]}
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block bg-card rounded-xl shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-card-border">
+                    <Th label="Company" sortKey="name" active={sortKey === "name"} dir={sortDir} onSort={handleSort} />
+                    <Th label="Type" sortKey="type" active={sortKey === "type"} dir={sortDir} onSort={handleSort} />
+                    <Th label="City" sortKey="city" active={sortKey === "city"} dir={sortDir} onSort={handleSort} />
+                    <Th label="State" sortKey="state" active={sortKey === "state"} dir={sortDir} onSort={handleSort} />
+                    <Th label="Out for Bid" sortKey="jobs_out_for_bid" active={sortKey === "jobs_out_for_bid"} dir={sortDir} onSort={handleSort} />
+                    <Th label="Last Activity" sortKey="last_activity_at" active={sortKey === "last_activity_at"} dir={sortDir} onSort={handleSort} />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-card-border">
+                  {sorted.map((c) => (
+                    <tr key={c.id} onClick={() => navigate(`/companies/${c.id}`)}
+                      className="hover:bg-gray-50 cursor-pointer">
+                      <td className="px-4 py-3 font-medium text-heading">{c.name}</td>
+                      <td className="px-4 py-3">
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-heading">
+                          {TYPE_LABELS[c.type]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-label">{c.city ?? "—"}</td>
+                      <td className="px-4 py-3 text-label">{c.state ?? "—"}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                          c.jobs_out_for_bid > 0 ? "bg-brand-light text-brand" : "bg-gray-100 text-subtle"
+                        }`}>
+                          {c.jobs_out_for_bid}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-label text-xs">
+                        {c.last_activity_at ? fmtDate(c.last_activity_at) : <span className="text-subtle">None</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden bg-card rounded-xl shadow-sm overflow-hidden">
+            <div className="divide-y divide-card-border">
+              {sorted.map((c) => (
+                <button key={c.id} onClick={() => navigate(`/companies/${c.id}`)}
+                  className="w-full text-left px-5 py-4 active:bg-gray-50">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p className="font-medium text-sm text-heading truncate">{c.name}</p>
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-heading shrink-0">
+                        {TYPE_LABELS[c.type]}
+                      </span>
+                    </div>
+                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${
+                      c.jobs_out_for_bid > 0 ? "bg-brand-light text-brand" : "bg-gray-100 text-subtle"
+                    }`}>
+                      {c.jobs_out_for_bid} out for bid
                     </span>
                   </div>
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${
-                    c.jobs_out_for_bid > 0
-                      ? "bg-brand-light text-brand"
-                      : "bg-gray-100 text-subtle"
-                  }`}>
-                    {c.jobs_out_for_bid} out for bid
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs text-label">{c.location}</p>
-                  <p className="text-[10px] text-subtle shrink-0">
-                    {c.last_activity_at
-                      ? `Last: ${fmtDate(c.last_activity_at)}`
-                      : "No activity yet"}
-                  </p>
-                </div>
-              </button>
-            ))}
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-label">{c.location}</p>
+                    <p className="text-[10px] text-subtle shrink-0">
+                      {c.last_activity_at ? `Last: ${fmtDate(c.last_activity_at)}` : "No activity yet"}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {showCreate && <CreateCompanyModal onCreate={createCompany} onClose={() => setShowCreate(false)} />}
