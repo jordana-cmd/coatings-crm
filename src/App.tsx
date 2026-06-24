@@ -3,14 +3,8 @@ import { AuthProvider } from "./hooks/useAuth";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 import AppShell from "./components/layout/AppShell";
-
-function HomePage() {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <p className="text-lg text-gray-600 font-medium">You're in</p>
-    </div>
-  );
-}
+import OppsList from "./pages/OppsList";
+import OppDetail from "./pages/OppDetail";
 
 function App() {
   return (
@@ -23,7 +17,17 @@ function App() {
             element={
               <ProtectedRoute>
                 <AppShell>
-                  <HomePage />
+                  <OppsList />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/opp/:id"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <OppDetail />
                 </AppShell>
               </ProtectedRoute>
             }

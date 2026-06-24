@@ -421,6 +421,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_opportunity: {
+        Args: {
+          p_amount?: number
+          p_company_id: string
+          p_job_site_address: string
+          p_name: string
+          p_pipeline: Database["public"]["Enums"]["pipeline_type"]
+        }
+        Returns: string
+      }
       current_app_role: { Args: never; Returns: string }
       valid_stage_for_pipeline: {
         Args: { p: Database["public"]["Enums"]["pipeline_type"]; s: string }
