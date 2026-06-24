@@ -134,12 +134,12 @@ function StageColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col w-64 md:w-72 shrink-0 rounded-xl transition-colors
+      className={`flex flex-col w-56 shrink-0 md:shrink md:w-0 md:flex-1 md:min-w-0 rounded-xl transition-colors
         ${isOver ? "bg-brand/10 ring-2 ring-brand/30" : "bg-shell-light/30"}`}
     >
       {/* Header */}
       <div className="px-3 py-3 border-b border-shell-border/30">
-        <h3 className="text-sm font-semibold text-white">{STAGE_LABELS[stage] ?? stage}</h3>
+        <h3 className="text-sm font-semibold text-white truncate">{STAGE_LABELS[stage] ?? stage}</h3>
         <p className="text-[10px] text-subtle mt-0.5">
           {opps.length} deal{opps.length !== 1 ? "s" : ""}
           {total > 0 ? ` · $${total.toLocaleString()}` : ""}
@@ -282,7 +282,7 @@ export default function OppsList() {
 
       {/* Board */}
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
+        <div className="flex gap-2 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 md:overflow-x-hidden">
           {(stages as readonly string[]).map((stage) => (
             <StageColumn
               key={stage}

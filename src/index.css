@@ -3,9 +3,10 @@
 /*
  * Motor City Floors & Coatings — Design Tokens (Tailwind v4 @theme)
  *
- * Shell: dark slate sidebar + topbar on desktop, bottom-nav on mobile
- * Content: dark-slate background with white floating cards
+ * Shell: dark matte charcoal sidebar + topbar
+ * Content: matte charcoal background with white floating cards
  * Brand: Motor City red #db0000
+ * Background charcoal: #1C1C1E (warm neutral matte, not blue-slate)
  */
 
 @theme {
@@ -14,14 +15,14 @@
   --color-brand-hover: #a50000;
   --color-brand-light: #fef2f2;
 
-  /* Shell — dark slate */
-  --color-shell: #0F1729;
-  --color-shell-light: #1E293B;
-  --color-shell-border: #334155;
-  --color-shell-hover: #1E293B;
+  /* Shell — matte charcoal */
+  --color-shell: #161618;
+  --color-shell-light: #2C2C2E;
+  --color-shell-border: #3A3A3C;
+  --color-shell-hover: #2C2C2E;
 
   /* Content area bg */
-  --color-page: #111827;
+  --color-page: #1C1C1E;
 
   /* Cards */
   --color-card: #FFFFFF;
