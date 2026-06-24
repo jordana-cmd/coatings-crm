@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useOpportunity } from "../hooks/useOpportunity";
 import { useUpdateBids } from "../hooks/useUpdateBids";
+import { useAdvanceStage } from "../hooks/useAdvanceStage";
 import { STAGE_LABELS, PIPELINE_LABELS } from "../lib/pipelines";
 import type { Pipeline } from "../lib/pipelines";
 import StageTracker from "../components/gates/StageTracker";
@@ -194,6 +195,8 @@ export default function OppDetail() {
   const { data: opp, loading, error, refetch } = useOpportunity(id);
   const { updateBidsField, updateOppField, saving, error: saveError } =
     useUpdateBids(id ?? "", refetch);
+  const { advance, loading: advancing, error: advanceError } =
+    useAdvanceStage(id ?? "", refetch);
 
   if (loading) {
     return (
@@ -238,7 +241,12 @@ export default function OppDetail() {
       <StageTracker opp={opp} />
 
       {/* Gate checklist */}
-      <GateChecklist opp={opp} />
+      <GateChecklist
+        opp={opp}
+        onAdvance={advance}
+        advancing={advancing}
+        advanceError={advanceError}
+      />
 
       {/* Save error */}
       {saveError && (

@@ -421,6 +421,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      advance_stage: {
+        Args: { p_opp_id: string; p_target_stage: string }
+        Returns: {
+          id: string
+          stage: string
+          status: Database["public"]["Enums"]["opp_status"]
+        }[]
+      }
       create_opportunity: {
         Args: {
           p_amount?: number
