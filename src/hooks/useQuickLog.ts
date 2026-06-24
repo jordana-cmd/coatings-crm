@@ -39,6 +39,7 @@ export function useQuickLog() {
       opportunityId: string;
       type: ActivityType;
       note?: string;
+      contactId?: string;
       nextAction?: string;
       nextActionAt?: string;
     }) => {
@@ -50,6 +51,7 @@ export function useQuickLog() {
         user_id: user.id,
         type: input.type,
         note: input.note ?? null,
+        contact_id: input.contactId ?? null,
         next_action: input.nextAction ?? null,
         next_action_at: input.nextActionAt ?? null,
         logged_at: new Date().toISOString(),

@@ -7,6 +7,7 @@ import {
   CalendarDays,
   Sun,
   Building2,
+  Users,
   Search,
   Bell,
   Settings,
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { label: "Today", path: "/", icon: Sun },
   { label: "Opportunities", path: "/opportunities", icon: FolderKanban },
   { label: "Companies", path: "/companies", icon: Building2 },
+  { label: "Contacts", path: "/contacts", icon: Users },
   { label: "Calendar", path: "/calendar", icon: CalendarDays },
 ];
 

@@ -267,7 +267,7 @@ export default function OppDetail() {
         )}
       </div>
 
-      <QuickLogFAB opportunityId={opp.id} onLogged={refetchActivities} />
+      <QuickLogFAB opportunityId={opp.id} companyId={opp.company_id} onLogged={refetchActivities} />
     </div>
   );
 }

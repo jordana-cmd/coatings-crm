@@ -1,22 +1,37 @@
 import { useState } from "react";
 import QuickLogSheet from "./QuickLogSheet";
 import { useQuickLog } from "../../hooks/useQuickLog";
+import { useCompanyContacts } from "../../hooks/useContacts";
 import type { Database } from "../../lib/database.types";
 
 type ActivityType = Database["public"]["Enums"]["activity_type"];
 
-interface Props { opportunityId: string; onLogged: () => void; }
+interface Props {
+  opportunityId: string;
+  companyId?: string;
+  onLogged: () => void;
+}
 
-export default function QuickLogFAB({ opportunityId, onLogged }: Props) {
+export default function QuickLogFAB({ opportunityId, companyId, onLogged }: Props) {
   const [open, setOpen] = useState(false);
   const { log, pending, failed, syncing } = useQuickLog();
+  const companyContacts = useCompanyContacts(companyId);
 
   const handleLog = async (input: {
-    type: ActivityType; note?: string; nextAction?: string; nextActionAt?: string;
+    type: ActivityType; note?: string; contactId?: string; nextAction?: string; nextActionAt?: string;
   }) => {
-    await log({ opportunityId, type: input.type, note: input.note, nextAction: input.nextAction, nextActionAt: input.nextActionAt });
+    await log({
+      opportunityId,
+      type: input.type,
+      note: input.note,
+      contactId: input.contactId,
+      nextAction: input.nextAction,
+      nextActionAt: input.nextActionAt,
+    });
     onLogged();
   };
+
+  const contactOptions = companyContacts.map((c) => ({ id: c.id, name: c.name }));
 
   return (
     <>
@@ -41,7 +56,13 @@ export default function QuickLogFAB({ opportunityId, onLogged }: Props) {
         aria-label="Log activity">
         +
       </button>
-      {open && <QuickLogSheet onLog={handleLog} onClose={() => setOpen(false)} />}
+      {open && (
+        <QuickLogSheet
+          contacts={contactOptions}
+          onLog={handleLog}
+          onClose={() => setOpen(false)}
+        />
+      )}
     </>
   );
 }

@@ -3,6 +3,11 @@ import type { Database } from "../../lib/database.types";
 
 type ActivityType = Database["public"]["Enums"]["activity_type"];
 
+interface ContactOption {
+  id: string;
+  name: string;
+}
+
 const ACTIVITY_TYPES: { value: ActivityType; label: string; icon: string }[] = [
   { value: "CALL", label: "Call", icon: "\u{1F4DE}" },
   { value: "VISIT", label: "Visit", icon: "\u{1F3D7}\uFE0F" },
@@ -12,20 +17,28 @@ const ACTIVITY_TYPES: { value: ActivityType; label: string; icon: string }[] = [
 ];
 
 interface Props {
-  onLog: (input: { type: ActivityType; note?: string; nextAction?: string; nextActionAt?: string }) => void;
+  contacts?: ContactOption[];
+  onLog: (input: { type: ActivityType; note?: string; contactId?: string; nextAction?: string; nextActionAt?: string }) => void;
   onClose: () => void;
 }
 
-export default function QuickLogSheet({ onLog, onClose }: Props) {
+export default function QuickLogSheet({ contacts, onLog, onClose }: Props) {
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedType, setSelectedType] = useState<ActivityType | null>(null);
   const [note, setNote] = useState("");
+  const [contactId, setContactId] = useState("");
   const [nextAction, setNextAction] = useState("");
   const [nextActionAt, setNextActionAt] = useState("");
 
   const handleConfirm = () => {
     if (!selectedType) return;
-    onLog({ type: selectedType, note: note.trim() || undefined, nextAction: nextAction.trim() || undefined, nextActionAt: nextActionAt || undefined });
+    onLog({
+      type: selectedType,
+      note: note.trim() || undefined,
+      contactId: contactId || undefined,
+      nextAction: nextAction.trim() || undefined,
+      nextActionAt: nextActionAt || undefined,
+    });
     onClose();
   };
 
@@ -58,6 +71,15 @@ export default function QuickLogSheet({ onLog, onClose }: Props) {
                 {ACTIVITY_TYPES.find((t) => t.value === selectedType)?.label}
               </span>
             </div>
+
+            {/* Contact picker — optional, only shown if contacts available */}
+            {contacts && contacts.length > 0 && (
+              <select value={contactId} onChange={(e) => setContactId(e.target.value)} className={inputCls}>
+                <option value="">Contact (optional)</option>
+                {contacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            )}
+
             <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)" rows={2} className={inputCls} />
             <input value={nextAction} onChange={(e) => setNextAction(e.target.value)} placeholder="Next action (optional)" className={inputCls} />
             {nextAction && <input type="date" value={nextActionAt} onChange={(e) => setNextActionAt(e.target.value)} className={inputCls} />}

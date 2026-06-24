@@ -10,6 +10,8 @@ import OppDetail from "./pages/OppDetail";
 import BidCalendarPage from "./pages/BidCalendarPage";
 import CompaniesList from "./pages/CompaniesList";
 import CompanyDetail from "./pages/CompanyDetail";
+import ContactsList from "./pages/ContactsList";
+import ContactDetail from "./pages/ContactDetail";
 
 function App() {
   return (
@@ -73,6 +75,26 @@ function App() {
               <ProtectedRoute>
                 <AppShell>
                   <CompanyDetail />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/contacts"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <ContactsList />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/contacts/:id"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <ContactDetail />
                 </AppShell>
               </ProtectedRoute>
             }

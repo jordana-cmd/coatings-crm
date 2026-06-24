@@ -10,6 +10,7 @@ export interface QueuedActivity {
   user_id: string;
   type: ActivityType;
   note: string | null;
+  contact_id: string | null;
   next_action: string | null;
   next_action_at: string | null;
   logged_at: string;
@@ -65,6 +66,7 @@ export async function drain(): Promise<{ synced: number; failed: number }> {
       user_id: activityData.user_id,
       type: activityData.type,
       note: activityData.note,
+      contact_id: activityData.contact_id,
       next_action: activityData.next_action,
       next_action_at: activityData.next_action_at,
       logged_at: activityData.logged_at,
