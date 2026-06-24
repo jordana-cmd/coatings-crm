@@ -32,7 +32,7 @@ function SidebarContent({ current, onNav }: { current: string; onNav: (p: string
         <p className="text-white font-bold text-sm leading-tight">Motor City</p>
         <p className="text-brand text-xs font-semibold">Floors & Coatings</p>
       </div>
-      <nav className="flex-1 px-3 space-y-1">
+      <nav className="flex-1 px-3 space-y-0.5">
         {NAV_ITEMS.map((item) => {
           const active = current === item.path;
           const Icon = item.icon;
@@ -77,15 +77,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <SidebarContent current={location.pathname} onNav={handleNav} />
       </aside>
 
-      {/* Mobile drawer overlay */}
+      {/* Mobile drawer */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
           <aside className="relative w-64 h-full bg-shell flex flex-col">
-            <button
-              onClick={() => setMobileOpen(false)}
-              className="absolute top-4 right-4 text-subtle"
-            >
+            <button onClick={() => setMobileOpen(false)} className="absolute top-4 right-4 text-subtle">
               <X size={20} />
             </button>
             <SidebarContent current={location.pathname} onNav={handleNav} />
@@ -96,48 +93,54 @@ export default function AppShell({ children }: { children: ReactNode }) {
       {/* Main area */}
       <div className="flex-1 flex flex-col md:ml-56">
         {/* Top bar */}
-        <header className="bg-shell border-b border-shell-border px-4 py-3 flex items-center gap-3">
-          <button
-            className="md:hidden text-subtle"
-            onClick={() => setMobileOpen(true)}
-          >
+        <header className="bg-shell border-b border-shell-border px-4 py-3 flex items-center gap-4">
+          <button className="md:hidden text-subtle shrink-0" onClick={() => setMobileOpen(true)}>
             <Menu size={22} />
           </button>
 
-          {/* Search */}
-          <div className="flex-1 max-w-md relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-subtle" />
+          {/* Spacer left */}
+          <div className="flex-1" />
+
+          {/* Centered search */}
+          <div className="w-full max-w-sm relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-subtle" />
             <input
               type="text"
               placeholder="Search..."
-              className="w-full bg-shell-light border border-shell-border rounded-lg pl-9 pr-3 py-2 text-sm text-white
-                         placeholder:text-subtle focus:outline-none focus:ring-1 focus:ring-brand"
+              className="w-full bg-shell-light border border-shell-border rounded-lg pl-9 pr-16 py-2 text-sm text-white
+                         placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-brand-ring focus:border-brand/40"
             />
+            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-subtle bg-shell-border/60 rounded px-1.5 py-0.5 font-mono">
+              Ctrl K
+            </span>
           </div>
 
+          {/* Spacer right */}
+          <div className="flex-1" />
+
           {/* Right icons */}
-          <div className="flex items-center gap-2">
-            <button className="p-2 text-subtle hover:text-white rounded-lg hover:bg-shell-light">
+          <div className="flex items-center gap-1 shrink-0">
+            <button className="p-2 text-subtle hover:text-white rounded-lg hover:bg-shell-light transition-colors">
               <Bell size={18} />
             </button>
-            <button className="p-2 text-subtle hover:text-white rounded-lg hover:bg-shell-light">
+            <button className="p-2 text-subtle hover:text-white rounded-lg hover:bg-shell-light transition-colors">
               <Settings size={18} />
             </button>
-
-            {/* Profile */}
-            <div className="relative">
+            <div className="relative ml-1">
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="h-8 w-8 rounded-full bg-brand text-white flex items-center justify-center text-sm font-bold"
+                className="h-8 w-8 rounded-full bg-brand text-white flex items-center justify-center text-sm font-semibold
+                           ring-2 ring-brand/20"
               >
                 {initial}
               </button>
               {profileOpen && (
-                <div className="absolute right-0 top-10 bg-card border border-gray-200 rounded-xl shadow-lg p-3 w-56 z-50">
+                <div className="absolute right-0 top-11 bg-card border border-card-border rounded-xl p-3 w-56 z-50"
+                     style={{ boxShadow: "var(--shadow-card)" }}>
                   <p className="text-xs text-label truncate mb-2 px-1">{user?.email}</p>
                   <button
                     onClick={() => { signOut(); setProfileOpen(false); }}
-                    className="w-full flex items-center gap-2 px-2 py-2 text-sm text-brand hover:bg-brand-light rounded-lg"
+                    className="w-full flex items-center gap-2 px-2 py-2 text-sm text-brand hover:bg-brand-light rounded-lg transition-colors"
                   >
                     <LogOut size={16} />
                     Sign out

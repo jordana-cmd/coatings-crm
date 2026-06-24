@@ -3,9 +3,10 @@ import { useDashboard } from "../hooks/useDashboard";
 import { useOpportunities } from "../hooks/useOpportunities";
 import { STAGE_LABELS, PIPELINE_LABELS, type Pipeline } from "../lib/pipelines";
 import KpiCard from "../components/dashboard/KpiCard";
-import { DollarSign, TrendingUp, BarChart3, Shield } from "lucide-react";
+import { DollarSign, BarChart3, Shield } from "lucide-react";
 
 function fmt$(n: number) {
+  if (n === 0) return "—";
   return "$" + n.toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 function fmtPct(n: number | null) {
@@ -21,7 +22,7 @@ export default function DashboardPage() {
   if (loading || oppsLoading) {
     return (
       <div className="flex items-center justify-center h-48">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-shell-border border-t-brand" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-brand" />
       </div>
     );
   }
@@ -29,76 +30,86 @@ export default function DashboardPage() {
   const d = data!;
   const recentOpps = opps.slice(0, 10);
 
+  // Compute a blended win rate for the ring (supplementary visual)
+  const totalDecided = d.winRates.reduce((s, w) => s + w.decided, 0);
+  const totalWins = d.winRates.reduce((s, w) => s + w.wins, 0);
+  const blendedRate = totalDecided > 0 ? totalWins / totalDecided : null;
+
+  // Per-pipeline breakdown string
+  const perPipeline = d.winRates.length > 0
+    ? d.winRates.map((w) =>
+        `${PIPELINE_LABELS[w.pipeline as Pipeline] ?? w.pipeline}: ${fmtPct(w.rate)}`
+      ).join("  ·  ")
+    : "Awaiting first result";
+
   return (
     <div className="space-y-6 pb-16 md:pb-6">
-      <h1 className="text-xl font-bold text-white">Dashboard Overview</h1>
+      <h1 className="text-xl font-semibold text-heading">Dashboard Overview</h1>
 
       {/* KPI row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           label="Outstanding Bid $"
           value={fmt$(d.outstandingBid.total)}
-          subLabel={`${d.outstandingBid.count} open bids`}
-          badge={<DollarSign size={16} className="text-label" />}
+          subLabel={d.outstandingBid.count > 0 ? `${d.outstandingBid.count} open bids` : "No open bids"}
+          badge={<DollarSign size={14} className="text-subtle" />}
         />
         <KpiCard
           label="Win Rate (90d)"
-          value={
-            d.winRates.length > 0
-              ? d.winRates.map((w) => `${PIPELINE_LABELS[w.pipeline as Pipeline] ?? w.pipeline}: ${fmtPct(w.rate)}`).join(" | ")
-              : "—"
-          }
-          subLabel={d.winRates.length > 0 ? `${d.winRates.reduce((s, w) => s + w.decided, 0)} decided` : "No data yet"}
-          badge={<TrendingUp size={16} className="text-label" />}
+          value={perPipeline}
+          subLabel={totalDecided > 0 ? `${totalWins}W / ${totalDecided} decided` : undefined}
+          ring={blendedRate}
         />
         <KpiCard
           label="Avg Spread to Low"
           value={fmtPct(d.spreadToLow.avg)}
-          subLabel={d.spreadToLow.sampleSize > 0 ? `${d.spreadToLow.sampleSize} bids` : "No tab data yet"}
-          badge={<BarChart3 size={16} className="text-label" />}
+          subLabel={d.spreadToLow.sampleSize > 0 ? `${d.spreadToLow.sampleSize} bids with tab data` : "Awaiting tab data"}
+          badge={<BarChart3 size={14} className="text-subtle" />}
         />
         <KpiCard
           label="% Pipeline Bonded"
-          value={fmtPct(d.bondExposure.pct)}
-          subLabel={d.bondExposure.totalDollars > 0 ? `${fmt$(d.bondExposure.bondedDollars)} of ${fmt$(d.bondExposure.totalDollars)}` : "No outstanding bids"}
-          badge={<Shield size={16} className="text-label" />}
+          value={d.bondExposure.totalDollars > 0 ? fmtPct(d.bondExposure.pct) : "—"}
+          subLabel={d.bondExposure.totalDollars > 0
+            ? `${fmt$(d.bondExposure.bondedDollars)} of ${fmt$(d.bondExposure.totalDollars)}`
+            : "No outstanding bids"}
+          badge={<Shield size={14} className="text-subtle" />}
         />
       </div>
 
       {/* Recent opps table */}
-      <div className="bg-card rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-card rounded-2xl overflow-hidden"
+           style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)" }}>
         <div className="px-5 py-4 border-b border-card-border">
           <h2 className="text-sm font-semibold text-heading">Recent Opportunities</h2>
         </div>
         {recentOpps.length === 0 ? (
-          <div className="px-5 py-8 text-center text-label text-sm">No opportunities yet.</div>
+          <div className="px-5 py-10 text-center text-subtle text-sm">
+            No opportunities yet — create one from the Pipeline view.
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs text-label uppercase tracking-wide">
+                <tr className="text-left text-[10px] text-label uppercase tracking-wider">
                   <th className="px-5 py-3 font-medium">Name</th>
                   <th className="px-5 py-3 font-medium">Company</th>
                   <th className="px-5 py-3 font-medium">Stage</th>
                   <th className="px-5 py-3 font-medium text-right">Amount</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-card-border">
                 {recentOpps.map((opp) => (
-                  <tr
-                    key={opp.id}
-                    onClick={() => navigate(`/opp/${opp.id}`)}
-                    className="hover:bg-gray-50 cursor-pointer"
-                  >
-                    <td className="px-5 py-3 font-medium text-heading">{opp.name}</td>
-                    <td className="px-5 py-3 text-label">{opp.company_name ?? "—"}</td>
-                    <td className="px-5 py-3">
-                      <span className="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-heading">
+                  <tr key={opp.id} onClick={() => navigate(`/opp/${opp.id}`)}
+                    className="hover:bg-gray-50 cursor-pointer transition-colors">
+                    <td className="px-5 py-3.5 font-medium text-heading">{opp.name}</td>
+                    <td className="px-5 py-3.5 text-label">{opp.company_name ?? "—"}</td>
+                    <td className="px-5 py-3.5">
+                      <span className="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-[10px] font-medium text-heading">
                         {STAGE_LABELS[opp.stage] ?? opp.stage}
                       </span>
                     </td>
-                    <td className="px-5 py-3 text-right text-heading">
-                      {opp.amount != null ? fmt$(opp.amount) : "—"}
+                    <td className="px-5 py-3.5 text-right text-heading">
+                      {opp.amount != null ? "$" + opp.amount.toLocaleString() : "—"}
                     </td>
                   </tr>
                 ))}

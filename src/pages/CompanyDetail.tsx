@@ -153,11 +153,14 @@ export default function CompanyDetail() {
       {/* KPI strip */}
       {!kpisLoading && kpis && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard label="Total Bid $" value={fmt$(kpis.totalBidDollars)} />
-          <KpiCard label="Total Won $" value={fmt$(kpis.totalWonDollars)} />
+          <KpiCard label="Total Bid $" value={kpis.totalBidDollars > 0 ? fmt$(kpis.totalBidDollars) : "—"}
+            subLabel={kpis.totalBidDollars === 0 ? "No bids yet" : undefined} />
+          <KpiCard label="Total Won $" value={kpis.totalWonDollars > 0 ? fmt$(kpis.totalWonDollars) : "—"}
+            subLabel={kpis.totalWonDollars === 0 ? "Awaiting first win" : undefined} />
           <KpiCard label="Avg Bid Size" value={kpis.avgBidSize != null ? fmt$(kpis.avgBidSize) : "—"} />
           <KpiCard label="Win Rate" value={winRateBreakdown}
-            subLabel={kpis.decidedCount > 0 ? `${kpis.wonCount}W / ${kpis.decidedCount} decided` : undefined} />
+            ring={kpis.winRateCount}
+            subLabel={kpis.decidedCount > 0 ? `${kpis.wonCount}W / ${kpis.decidedCount} decided` : "Awaiting results"} />
         </div>
       )}
 

@@ -4,9 +4,8 @@
  * Motor City Floors & Coatings — Design Tokens (Tailwind v4 @theme)
  *
  * Shell: dark matte charcoal sidebar + topbar
- * Content: matte charcoal background with white floating cards
+ * Content area: soft warm neutral so white cards float elegantly
  * Brand: Motor City red #db0000
- * Background charcoal: #1C1C1E (warm neutral matte, not blue-slate)
  */
 
 @theme {
@@ -14,26 +13,27 @@
   --color-brand: #db0000;
   --color-brand-hover: #a50000;
   --color-brand-light: #fef2f2;
+  --color-brand-ring: rgba(219, 0, 0, 0.15);
 
-  /* Shell — matte charcoal */
+  /* Shell — dark matte charcoal */
   --color-shell: #161618;
   --color-shell-light: #2C2C2E;
   --color-shell-border: #3A3A3C;
   --color-shell-hover: #2C2C2E;
 
-  /* Content area bg */
-  --color-page: #1C1C1E;
+  /* Content area — soft neutral (not dark charcoal, not stark white) */
+  --color-page: #F4F4F5;
 
-  /* Cards */
+  /* Cards — elevated white */
   --color-card: #FFFFFF;
-  --color-card-border: #F3F4F6;
+  --color-card-border: #E5E7EB;
 
   /* Text */
   --color-heading: #111827;
   --color-label: #6B7280;
   --color-subtle: #9CA3AF;
 
-  /* Status — semantically distinct from brand */
+  /* Status */
   --color-gate-met: #16A34A;
   --color-gate-met-light: #F0FDF4;
   --color-pending: #D97706;
@@ -41,6 +41,9 @@
   --color-dq: #7F1D1D;
   --color-dq-bg: #FEF2F2;
   --color-dq-border: #991B1B;
+
+  /* Elevated card shadow */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
 }
 
 body {
