@@ -70,10 +70,10 @@ function makeOppWithBids(
 // ── SOURCED → ESTIMATING ───────────────────────────────────────────
 
 describe("PUBLIC_BID: SOURCED → ESTIMATING", () => {
-  it("allows when plans_link present AND go_no_go true", () => {
+  it("allows when plans_link present (go_no_go irrelevant)", () => {
     const opp = makeOppWithBids(
       { stage: "SOURCED" },
-      { plans_link: "https://planroom.com/123", go_no_go: true }
+      { plans_link: "https://planroom.com/123", go_no_go: false }
     );
     const result = canAdvance(opp, "ESTIMATING");
     expect(result.allowed).toBe(true);
@@ -83,32 +83,14 @@ describe("PUBLIC_BID: SOURCED → ESTIMATING", () => {
   it("blocks when plans_link missing", () => {
     const opp = makeOppWithBids(
       { stage: "SOURCED" },
-      { plans_link: null, go_no_go: true }
+      { plans_link: null }
     );
     const result = canAdvance(opp, "ESTIMATING");
     expect(result.allowed).toBe(false);
+    expect(result.unmet).toHaveLength(1);
     expect(result.unmet).toContainEqual(
       expect.objectContaining({ field: "bids.plans_link" })
     );
-  });
-
-  it("blocks when go_no_go false", () => {
-    const opp = makeOppWithBids(
-      { stage: "SOURCED" },
-      { plans_link: "https://planroom.com/123", go_no_go: false }
-    );
-    const result = canAdvance(opp, "ESTIMATING");
-    expect(result.allowed).toBe(false);
-    expect(result.unmet).toContainEqual(
-      expect.objectContaining({ field: "bids.go_no_go" })
-    );
-  });
-
-  it("returns both unmet when both missing", () => {
-    const opp = makeOppWithBids({ stage: "SOURCED" }, {});
-    const result = canAdvance(opp, "ESTIMATING");
-    expect(result.allowed).toBe(false);
-    expect(result.unmet).toHaveLength(2);
   });
 });
 

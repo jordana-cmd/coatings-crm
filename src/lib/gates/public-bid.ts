@@ -15,9 +15,6 @@ export function sourcedToEstimating(opp: OppWithBids): GateResult {
   if (!opp.bids.plans_link) {
     unmet.push({ field: "bids.plans_link", label: "Plans link uploaded" });
   }
-  if (!opp.bids.go_no_go) {
-    unmet.push({ field: "bids.go_no_go", label: "Go/No-Go decision made" });
-  }
 
   return { allowed: unmet.length === 0, unmet };
 }
