@@ -41,6 +41,7 @@ export type Database = {
     Tables: {
       activities: {
         Row: {
+          contact_id: string | null
           id: string
           logged_at: string
           next_action: string | null
@@ -52,6 +53,7 @@ export type Database = {
           voice_note_url: string | null
         }
         Insert: {
+          contact_id?: string | null
           id?: string
           logged_at?: string
           next_action?: string | null
@@ -63,6 +65,7 @@ export type Database = {
           voice_note_url?: string | null
         }
         Update: {
+          contact_id?: string | null
           id?: string
           logged_at?: string
           next_action?: string | null
@@ -74,6 +77,13 @@ export type Database = {
           voice_note_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "activities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "activities_opportunity_id_fkey"
             columns: ["opportunity_id"]
@@ -305,7 +315,10 @@ export type Database = {
         Row: {
           amount: number | null
           company_id: string
+          completed_at: string | null
+          completion_notes: string | null
           created_at: string
+          final_value: number | null
           id: string
           job_site_address: string
           job_site_lat: number | null
@@ -324,7 +337,10 @@ export type Database = {
         Insert: {
           amount?: number | null
           company_id: string
+          completed_at?: string | null
+          completion_notes?: string | null
           created_at?: string
+          final_value?: number | null
           id?: string
           job_site_address: string
           job_site_lat?: number | null
@@ -343,7 +359,10 @@ export type Database = {
         Update: {
           amount?: number | null
           company_id?: string
+          completed_at?: string | null
+          completion_notes?: string | null
           created_at?: string
+          final_value?: number | null
           id?: string
           job_site_address?: string
           job_site_lat?: number | null
