@@ -12,24 +12,36 @@ export default function OppsList() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-brand" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-shell-border border-t-brand" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center py-12 text-brand text-sm">{error}</div>
+      <div className="text-center py-12">
+        <div className="bg-card rounded-xl shadow-sm p-8">
+          <p className="text-brand text-sm">{error}</p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="pb-20">
+    <div className="pb-20 md:pb-6">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-bold text-white">Opportunities</h1>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="rounded-lg bg-brand text-white px-4 py-2 text-sm font-medium active:bg-brand-hover"
+        >
+          + New
+        </button>
+      </div>
+
       {opps.length === 0 ? (
-        <div className="text-center py-16">
-          <p className="text-text-muted mb-4">
-            No opportunities yet — add your first.
-          </p>
+        <div className="bg-card rounded-xl shadow-sm p-12 text-center">
+          <p className="text-label mb-4">No opportunities yet — add your first.</p>
           <button
             onClick={() => setShowCreate(true)}
             className="rounded-lg bg-brand text-white px-6 py-3 text-base font-medium active:bg-brand-hover"
@@ -38,47 +50,31 @@ export default function OppsList() {
           </button>
         </div>
       ) : (
-        <>
-          <ul className="space-y-2">
+        <div className="bg-card rounded-xl shadow-sm overflow-hidden">
+          <div className="divide-y divide-card-border">
             {opps.map((opp) => (
-              <li key={opp.id}>
-                <button
-                  onClick={() => navigate(`/opp/${opp.id}`)}
-                  className="w-full text-left bg-surface rounded-xl p-4 shadow-sm border border-gray-100
-                             active:bg-gray-50 flex items-center justify-between gap-3"
-                >
-                  <div className="min-w-0">
-                    <p className="font-medium text-text-primary truncate">
-                      {opp.name}
-                    </p>
-                    <p className="text-sm text-text-muted truncate">
-                      {opp.company_name ?? "—"}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <span className="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-text-primary">
-                      {STAGE_LABELS[opp.stage] ?? opp.stage}
-                    </span>
-                    {opp.amount != null && (
-                      <p className="text-sm text-text-muted mt-0.5">
-                        ${opp.amount.toLocaleString()}
-                      </p>
-                    )}
-                  </div>
-                </button>
-              </li>
+              <button
+                key={opp.id}
+                onClick={() => navigate(`/opp/${opp.id}`)}
+                className="w-full text-left px-5 py-4 flex items-center justify-between gap-3
+                           hover:bg-gray-50 active:bg-gray-50"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium text-sm text-heading truncate">{opp.name}</p>
+                  <p className="text-xs text-label truncate">{opp.company_name ?? "—"}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-[10px] font-medium text-heading">
+                    {STAGE_LABELS[opp.stage] ?? opp.stage}
+                  </span>
+                  {opp.amount != null && (
+                    <p className="text-xs text-label mt-0.5">${opp.amount.toLocaleString()}</p>
+                  )}
+                </div>
+              </button>
             ))}
-          </ul>
-
-          {/* FAB */}
-          <button
-            onClick={() => setShowCreate(true)}
-            className="fixed bottom-20 right-4 h-14 w-14 rounded-full bg-brand text-white text-2xl
-                       shadow-lg flex items-center justify-center active:bg-brand-hover z-40"
-          >
-            +
-          </button>
-        </>
+          </div>
+        </div>
       )}
 
       {showCreate && (

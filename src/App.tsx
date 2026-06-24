@@ -3,6 +3,7 @@ import { AuthProvider } from "./hooks/useAuth";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 import AppShell from "./components/layout/AppShell";
+import DashboardPage from "./pages/DashboardPage";
 import DailyView from "./pages/DailyView";
 import OppsList from "./pages/OppsList";
 import OppDetail from "./pages/OppDetail";
@@ -14,6 +15,16 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <DashboardPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/"
             element={

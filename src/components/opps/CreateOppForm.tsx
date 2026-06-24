@@ -83,16 +83,16 @@ export default function CreateOppForm({ onSubmit, onClose }: Props) {
   };
 
   const inputClass =
-    "w-full rounded-lg border border-gray-300 px-4 py-3 text-base text-text-primary focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent";
+    "w-full rounded-lg border border-gray-200 px-4 py-3 text-sm text-heading focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent";
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-lg bg-white rounded-t-2xl sm:rounded-2xl p-6 max-h-[90svh] overflow-y-auto"
+        className="w-full max-w-lg bg-card rounded-t-2xl sm:rounded-2xl p-6 max-h-[90svh] overflow-y-auto"
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-text-primary">
+          <h2 className="text-lg font-bold text-heading">
             New Public Bid
           </h2>
           <button
@@ -105,7 +105,7 @@ export default function CreateOppForm({ onSubmit, onClose }: Props) {
         </div>
 
         <label className="block mb-3">
-          <span className="block text-sm font-medium text-gray-700 mb-1">
+          <span className="block text-sm font-medium text-label mb-1">
             Project Name
           </span>
           <input
@@ -118,7 +118,7 @@ export default function CreateOppForm({ onSubmit, onClose }: Props) {
         </label>
 
         <label className="block mb-3">
-          <span className="block text-sm font-medium text-gray-700 mb-1">
+          <span className="block text-sm font-medium text-label mb-1">
             Job Site Address
           </span>
           <input
@@ -131,7 +131,7 @@ export default function CreateOppForm({ onSubmit, onClose }: Props) {
         </label>
 
         <label className="block mb-3">
-          <span className="block text-sm font-medium text-gray-700 mb-1">
+          <span className="block text-sm font-medium text-label mb-1">
             Amount (optional)
           </span>
           <input
@@ -147,7 +147,7 @@ export default function CreateOppForm({ onSubmit, onClose }: Props) {
         {/* Company picker */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-sm font-medium text-gray-700">Company</span>
+            <span className="text-sm font-medium text-label">Company</span>
             <button
               type="button"
               onClick={() => {

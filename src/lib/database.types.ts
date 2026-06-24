@@ -418,7 +418,38 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_bond_exposure: {
+        Row: {
+          bond_pct: number | null
+          bonded_dollars: number | null
+          total_dollars: number | null
+        }
+        Relationships: []
+      }
+      v_outstanding_bid_dollars: {
+        Row: {
+          opp_count: number | null
+          pipeline: Database["public"]["Enums"]["pipeline_type"] | null
+          total: number | null
+        }
+        Relationships: []
+      }
+      v_spread_to_low: {
+        Row: {
+          avg_spread: number | null
+          sample_size: number | null
+        }
+        Relationships: []
+      }
+      v_win_rate_by_motion: {
+        Row: {
+          decided: number | null
+          pipeline: Database["public"]["Enums"]["pipeline_type"] | null
+          win_rate: number | null
+          wins: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       advance_stage: {

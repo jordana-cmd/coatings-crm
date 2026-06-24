@@ -1,0 +1,112 @@
+import { useNavigate } from "react-router-dom";
+import { useDashboard } from "../hooks/useDashboard";
+import { useOpportunities } from "../hooks/useOpportunities";
+import { STAGE_LABELS, PIPELINE_LABELS, type Pipeline } from "../lib/pipelines";
+import KpiCard from "../components/dashboard/KpiCard";
+import { DollarSign, TrendingUp, BarChart3, Shield } from "lucide-react";
+
+function fmt$(n: number) {
+  return "$" + n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+}
+function fmtPct(n: number | null) {
+  if (n == null) return "—";
+  return (n * 100).toFixed(1) + "%";
+}
+
+export default function DashboardPage() {
+  const { data, loading } = useDashboard();
+  const { opps, loading: oppsLoading } = useOpportunities();
+  const navigate = useNavigate();
+
+  if (loading || oppsLoading) {
+    return (
+      <div className="flex items-center justify-center h-48">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-shell-border border-t-brand" />
+      </div>
+    );
+  }
+
+  const d = data!;
+  const recentOpps = opps.slice(0, 10);
+
+  return (
+    <div className="space-y-6 pb-16 md:pb-6">
+      <h1 className="text-xl font-bold text-white">Dashboard Overview</h1>
+
+      {/* KPI row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard
+          label="Outstanding Bid $"
+          value={fmt$(d.outstandingBid.total)}
+          subLabel={`${d.outstandingBid.count} open bids`}
+          badge={<DollarSign size={16} className="text-label" />}
+        />
+        <KpiCard
+          label="Win Rate (90d)"
+          value={
+            d.winRates.length > 0
+              ? d.winRates.map((w) => `${PIPELINE_LABELS[w.pipeline as Pipeline] ?? w.pipeline}: ${fmtPct(w.rate)}`).join(" | ")
+              : "—"
+          }
+          subLabel={d.winRates.length > 0 ? `${d.winRates.reduce((s, w) => s + w.decided, 0)} decided` : "No data yet"}
+          badge={<TrendingUp size={16} className="text-label" />}
+        />
+        <KpiCard
+          label="Avg Spread to Low"
+          value={fmtPct(d.spreadToLow.avg)}
+          subLabel={d.spreadToLow.sampleSize > 0 ? `${d.spreadToLow.sampleSize} bids` : "No tab data yet"}
+          badge={<BarChart3 size={16} className="text-label" />}
+        />
+        <KpiCard
+          label="% Pipeline Bonded"
+          value={fmtPct(d.bondExposure.pct)}
+          subLabel={d.bondExposure.totalDollars > 0 ? `${fmt$(d.bondExposure.bondedDollars)} of ${fmt$(d.bondExposure.totalDollars)}` : "No outstanding bids"}
+          badge={<Shield size={16} className="text-label" />}
+        />
+      </div>
+
+      {/* Recent opps table */}
+      <div className="bg-card rounded-xl shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-card-border">
+          <h2 className="text-sm font-semibold text-heading">Recent Opportunities</h2>
+        </div>
+        {recentOpps.length === 0 ? (
+          <div className="px-5 py-8 text-center text-label text-sm">No opportunities yet.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-label uppercase tracking-wide">
+                  <th className="px-5 py-3 font-medium">Name</th>
+                  <th className="px-5 py-3 font-medium">Company</th>
+                  <th className="px-5 py-3 font-medium">Stage</th>
+                  <th className="px-5 py-3 font-medium text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {recentOpps.map((opp) => (
+                  <tr
+                    key={opp.id}
+                    onClick={() => navigate(`/opp/${opp.id}`)}
+                    className="hover:bg-gray-50 cursor-pointer"
+                  >
+                    <td className="px-5 py-3 font-medium text-heading">{opp.name}</td>
+                    <td className="px-5 py-3 text-label">{opp.company_name ?? "—"}</td>
+                    <td className="px-5 py-3">
+                      <span className="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-heading">
+                        {STAGE_LABELS[opp.stage] ?? opp.stage}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-right text-heading">
+                      {opp.amount != null ? fmt$(opp.amount) : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

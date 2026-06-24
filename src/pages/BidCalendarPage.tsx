@@ -41,7 +41,7 @@ function EventDot({ event, onClick }: { event: CalendarEvent; onClick: () => voi
   } else if (event.kind === "walk") {
     bg = event.mandatory ? "bg-red-400" : "bg-yellow-400";
   } else {
-    bg = "bg-gray-800";
+    bg = "bg-shell-light";
   }
 
   return (
@@ -95,21 +95,24 @@ export default function BidCalendarPage() {
   const selectedEvents = selectedDateStr ? (eventsByDate[selectedDateStr] ?? []) : [];
 
   return (
-    <div className="pb-8">
+    <div className="pb-16 md:pb-6">
+      <h1 className="text-xl font-bold text-white mb-4">Bid Calendar</h1>
+
+      <div className="bg-card rounded-xl shadow-sm p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <button onClick={goPrev} className="text-gray-600 px-2 py-1 active:bg-gray-200 rounded">
+          <button onClick={goPrev} className="text-label px-2 py-1 active:bg-gray-200 rounded">
             &lsaquo;
           </button>
-          <h1 className="text-lg font-bold text-gray-900">
+          <h1 className="text-lg font-bold text-heading">
             {MONTH_NAMES[month]} {year}
           </h1>
-          <button onClick={goNext} className="text-gray-600 px-2 py-1 active:bg-gray-200 rounded">
+          <button onClick={goNext} className="text-label px-2 py-1 active:bg-gray-200 rounded">
             &rsaquo;
           </button>
         </div>
-        <button onClick={goToday} className="text-xs text-blue-600 font-medium">
+        <button onClick={goToday} className="text-xs text-brand font-medium">
           Today
         </button>
       </div>
@@ -122,8 +125,8 @@ export default function BidCalendarPage() {
             onClick={() => setFilter(f.value)}
             className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap
               ${filter === f.value
-                ? "bg-gray-900 text-white"
-                : "bg-gray-100 text-gray-600 active:bg-gray-200"}`}
+                ? "bg-brand text-white"
+                : "bg-gray-100 text-label active:bg-gray-200"}`}
           >
             {f.label}
           </button>
@@ -139,7 +142,7 @@ export default function BidCalendarPage() {
           {/* Grid */}
           <div className="grid grid-cols-7 gap-px bg-gray-200 rounded-xl overflow-hidden border border-gray-200">
             {DAYS.map((d) => (
-              <div key={d} className="bg-gray-50 text-center text-xs font-medium text-gray-500 py-1.5">
+              <div key={d} className="bg-gray-50 text-center text-xs font-medium text-label py-1.5">
                 {d}
               </div>
             ))}
@@ -157,10 +160,10 @@ export default function BidCalendarPage() {
                   key={day}
                   onClick={() => setSelectedDay(day === selectedDay ? null : day)}
                   className={`bg-white min-h-[56px] p-0.5 text-left align-top
-                    ${isSelected ? "ring-2 ring-gray-900 ring-inset" : ""}
+                    ${isSelected ? "ring-2 ring-brand ring-inset" : ""}
                     ${isToday ? "bg-blue-50" : ""}`}
                 >
-                  <span className={`text-xs block mb-0.5 ${isToday ? "font-bold text-blue-600" : "text-gray-600"}`}>
+                  <span className={`text-xs block mb-0.5 ${isToday ? "font-bold text-brand" : "text-label"}`}>
                     {day}
                   </span>
                   <div className="space-y-0.5">
@@ -168,7 +171,7 @@ export default function BidCalendarPage() {
                       <EventDot key={e.id} event={e} onClick={() => navigate(`/opp/${e.oppId}`)} />
                     ))}
                     {dayEvents.length > 3 && (
-                      <span className="text-[10px] text-gray-400">+{dayEvents.length - 3}</span>
+                      <span className="text-[10px] text-subtle">+{dayEvents.length - 3}</span>
                     )}
                   </div>
                 </button>
@@ -179,13 +182,13 @@ export default function BidCalendarPage() {
           {/* Detail panel for selected day */}
           {selectedDateStr && (
             <div className="mt-3 rounded-xl bg-white border border-gray-200 p-3">
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">
+              <h3 className="text-sm font-semibold text-heading mb-2">
                 {new Date(year, month, selectedDay!).toLocaleDateString(undefined, {
                   weekday: "long", month: "short", day: "numeric",
                 })}
               </h3>
               {selectedEvents.length === 0 ? (
-                <p className="text-sm text-gray-400">No events</p>
+                <p className="text-sm text-subtle">No events</p>
               ) : (
                 <ul className="space-y-2">
                   {selectedEvents.map((e) => {
@@ -202,21 +205,21 @@ export default function BidCalendarPage() {
                             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                               e.kind === "walk"
                                 ? e.mandatory ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"
-                                : "bg-gray-100 text-gray-700"
+                                : "bg-gray-100 text-heading"
                             }`}>
                               {e.kind === "walk" ? "Walk" : "Bid Due"}
                             </span>
-                            <span className="text-sm font-medium text-gray-900">{e.time}</span>
+                            <span className="text-sm font-medium text-heading">{e.time}</span>
                             {dq && (
                               <span className="text-xs font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">
                                 DQ
                               </span>
                             )}
                           </div>
-                          <p className={`text-sm text-gray-700 mt-0.5 ${dq ? "line-through" : ""}`}>
+                          <p className={`text-sm text-heading mt-0.5 ${dq ? "line-through" : ""}`}>
                             {e.oppName}
                           </p>
-                          <p className="text-xs text-gray-400">{e.companyName ?? "—"}</p>
+                          <p className="text-xs text-subtle">{e.companyName ?? "—"}</p>
                         </button>
                       </li>
                     );
@@ -227,6 +230,7 @@ export default function BidCalendarPage() {
           )}
         </>
       )}
+      </div>
     </div>
   );
 }

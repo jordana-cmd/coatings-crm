@@ -12,7 +12,7 @@ export default function LoginPage() {
   if (loading) {
     return (
       <div className="min-h-svh flex items-center justify-center bg-shell">
-        <div className="text-gray-400 text-sm">Loading...</div>
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-shell-border border-t-brand" />
       </div>
     );
   }
@@ -24,65 +24,38 @@ export default function LoginPage() {
     setError(null);
     setSubmitting(true);
     const err = await signIn(email, password);
-    if (err) {
-      setError(err);
-      setSubmitting(false);
-    }
+    if (err) { setError(err); setSubmitting(false); }
   };
 
   return (
-    <div className="min-h-svh flex items-center justify-center bg-shell p-4">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-8"
-      >
-        <h1 className="text-xl font-bold text-text-primary text-center mb-1">
-          Motor City Floors
-        </h1>
-        <p className="text-xs text-text-muted text-center mb-6">
-          & Coatings
-        </p>
+    <div className="min-h-svh flex items-center justify-center bg-page p-4">
+      <form onSubmit={handleSubmit} className="w-full max-w-sm bg-card rounded-2xl shadow-2xl p-8">
+        <div className="text-center mb-6">
+          <h1 className="text-xl font-bold text-heading">Motor City Floors</h1>
+          <p className="text-xs text-brand font-semibold">& Coatings</p>
+        </div>
 
         <label className="block mb-4">
-          <span className="block text-sm font-medium text-text-primary mb-1">
-            Email
-          </span>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-4 py-3 text-base text-text-primary
+          <span className="block text-xs font-medium text-label mb-1">Email</span>
+          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-heading
                        focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
-            autoComplete="email"
-          />
+            autoComplete="email" />
         </label>
 
         <label className="block mb-6">
-          <span className="block text-sm font-medium text-text-primary mb-1">
-            Password
-          </span>
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-4 py-3 text-base text-text-primary
+          <span className="block text-xs font-medium text-label mb-1">Password</span>
+          <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-heading
                        focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
-            autoComplete="current-password"
-          />
+            autoComplete="current-password" />
         </label>
 
-        {error && (
-          <p className="text-brand text-sm mb-4 text-center">{error}</p>
-        )}
+        {error && <p className="text-brand text-sm mb-4 text-center">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded-lg bg-brand text-white py-3 text-base font-medium
-                     active:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        <button type="submit" disabled={submitting}
+          className="w-full rounded-lg bg-brand text-white py-3 text-sm font-medium
+                     active:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed">
           {submitting ? "Signing in..." : "Sign in"}
         </button>
       </form>
