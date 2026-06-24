@@ -178,6 +178,13 @@ export type Database = {
             foreignKeyName: "bids_gc_company_id_fkey"
             columns: ["gc_company_id"]
             isOneToOne: false
+            referencedRelation: "v_company_kpis"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "bids_gc_company_id_fkey"
+            columns: ["gc_company_id"]
+            isOneToOne: false
             referencedRelation: "v_company_list"
             referencedColumns: ["id"]
           },
@@ -193,39 +200,60 @@ export type Database = {
       companies: {
         Row: {
           address: string
+          address_line1: string | null
           city: string | null
           created_at: string
+          email: string | null
           id: string
+          linkedin_url: string | null
           name: string
           notes: string | null
+          phone: string | null
+          planroom_url: string | null
           region: string
           state: string | null
+          status: string | null
           type: Database["public"]["Enums"]["company_type"]
           website: string | null
+          zip: string | null
         }
         Insert: {
           address: string
+          address_line1?: string | null
           city?: string | null
           created_at?: string
+          email?: string | null
           id?: string
+          linkedin_url?: string | null
           name: string
           notes?: string | null
+          phone?: string | null
+          planroom_url?: string | null
           region: string
           state?: string | null
+          status?: string | null
           type: Database["public"]["Enums"]["company_type"]
           website?: string | null
+          zip?: string | null
         }
         Update: {
           address?: string
+          address_line1?: string | null
           city?: string | null
           created_at?: string
+          email?: string | null
           id?: string
+          linkedin_url?: string | null
           name?: string
           notes?: string | null
+          phone?: string | null
+          planroom_url?: string | null
           region?: string
           state?: string | null
+          status?: string | null
           type?: Database["public"]["Enums"]["company_type"]
           website?: string | null
+          zip?: string | null
         }
         Relationships: []
       }
@@ -267,6 +295,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_kpis"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "contacts_company_id_fkey"
@@ -410,6 +445,13 @@ export type Database = {
             foreignKeyName: "opportunities_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "v_company_kpis"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "opportunities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "v_company_list"
             referencedColumns: ["id"]
           },
@@ -469,6 +511,22 @@ export type Database = {
           bond_pct: number | null
           bonded_dollars: number | null
           total_dollars: number | null
+        }
+        Relationships: []
+      }
+      v_company_kpis: {
+        Row: {
+          avg_bid_size: number | null
+          company_id: string | null
+          decided_count: number | null
+          total_bid_dollars: number | null
+          total_won_dollars: number | null
+          win_rate_count: number | null
+          win_rate_dollars: number | null
+          win_rate_facility: number | null
+          win_rate_gc_chase: number | null
+          win_rate_public_bid: number | null
+          won_count: number | null
         }
         Relationships: []
       }
