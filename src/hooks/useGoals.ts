@@ -6,7 +6,7 @@ type PipelineEnum = Database["public"]["Enums"]["pipeline_type"];
 
 type GoalRow = Database["public"]["Tables"]["goals"]["Row"];
 
-export type GoalType = "REVENUE_WON" | "BIDS_SUBMITTED" | "WALKS_ATTENDED" | "OPPS_SOURCED" | "PROPOSALS_SENT";
+export type GoalType = "REVENUE_WON" | "BIDS_SUBMITTED" | "BIDS_SUBMITTED_VALUE" | "WALKS_ATTENDED" | "OPPS_SOURCED" | "PROPOSALS_SENT";
 
 export interface GoalWithProgress extends GoalRow {
   actual: number;
@@ -132,8 +132,6 @@ export function useGoals() {
           }
 
           case "PROPOSALS_SENT": {
-            // EXACT count from stage history: distinct opps that entered a proposal-equivalent stage.
-            // PUBLIC_BID/GC_CHASE: SUBMITTED; FACILITY: PROPOSAL.
             const proposalStages = ["SUBMITTED", "PROPOSAL"];
             let q = supabase.from("opportunity_stage_history").select("opportunity_id")
               .in("to_stage", proposalStages)
@@ -146,6 +144,23 @@ export function useGoals() {
               oppIds = (opps ?? []).map((o) => o.id);
             }
             actual = oppIds.length;
+            break;
+          }
+
+          case "BIDS_SUBMITTED_VALUE": {
+            // EXACT $ sum from stage history: SUM(amount) for opps that entered SUBMITTED in period.
+            let q = supabase.from("opportunity_stage_history").select("opportunity_id")
+              .eq("to_stage", "SUBMITTED")
+              .gte("changed_at", startIso)
+              .lt("changed_at", endIso);
+            const { data: histRows } = await q;
+            let bsvOppIds = [...new Set((histRows ?? []).map((r) => r.opportunity_id))];
+            if (bsvOppIds.length > 0) {
+              let oq = supabase.from("opportunities").select("amount").in("id", bsvOppIds).not("amount", "is", null);
+              if (pipeFilter) oq = oq.eq("pipeline", pipeFilter as PipelineEnum);
+              const { data: opps } = await oq;
+              actual = (opps ?? []).reduce((s, o) => s + Number(o.amount ?? 0), 0);
+            }
             break;
           }
         }
@@ -179,9 +194,13 @@ export function useGoals() {
     return { error: error?.message ?? null };
   };
 
-  const updateGoal = async (id: string, target_value: number) => {
+  const updateGoal = async (id: string, fields: {
+    goal_type?: string; pipeline?: string | null; period?: string;
+    period_year?: number; period_quarter?: number | null; period_month?: number | null;
+    target_value?: number;
+  }) => {
     if (!supabase) return;
-    await supabase.from("goals").update({ target_value, updated_at: new Date().toISOString() }).eq("id", id);
+    await supabase.from("goals").update({ ...fields, updated_at: new Date().toISOString() }).eq("id", id);
   };
 
   const deleteGoal = async (id: string) => {
