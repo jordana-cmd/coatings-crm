@@ -117,5 +117,30 @@ export function useDailyView() {
     fetch();
   }, [fetch]);
 
-  return { deadlines, walks, followUps, loading, refetch: fetch };
+  // 7-day bid outlook
+  const [outlook7d, setOutlook7d] = useState<BidDeadline[]>([]);
+
+  const fetchOutlook = useCallback(async () => {
+    if (!supabase) return;
+    const now = new Date();
+    const end7d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 8).toISOString();
+
+    const { data } = await supabase
+      .from("bids")
+      .select("*, opportunities(*, companies(name))")
+      .gte("bid_due_at", new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString())
+      .lt("bid_due_at", end7d)
+      .order("bid_due_at", { ascending: true });
+
+    const items: BidDeadline[] = [];
+    for (const row of data ?? []) {
+      const opp = row.opportunities as unknown as OppRow & { companies: { name: string } | null };
+      if (opp) items.push({ opp: { ...opp, company_name: opp.companies?.name ?? null }, bids: row });
+    }
+    setOutlook7d(items);
+  }, []);
+
+  useEffect(() => { fetchOutlook(); }, [fetchOutlook]);
+
+  return { deadlines, walks, followUps, outlook7d, loading, refetch: fetch };
 }
