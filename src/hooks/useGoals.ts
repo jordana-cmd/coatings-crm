@@ -162,7 +162,34 @@ export function useGoals() {
     })();
   }, []);
 
-  return { goals, loading };
+  const createGoal = async (input: {
+    goal_type: GoalType; pipeline?: string; period: string;
+    period_year: number; period_quarter?: number; period_month?: number;
+    target_value: number; owner_id?: string | null;
+  }) => {
+    if (!supabase) return { error: "Not ready" };
+    const { error } = await supabase.from("goals").insert({
+      goal_type: input.goal_type, pipeline: input.pipeline ?? null,
+      period: input.period, period_year: input.period_year,
+      period_quarter: input.period_quarter ?? null,
+      period_month: input.period_month ?? null,
+      target_value: input.target_value,
+      owner_id: input.owner_id ?? null,
+    });
+    return { error: error?.message ?? null };
+  };
+
+  const updateGoal = async (id: string, target_value: number) => {
+    if (!supabase) return;
+    await supabase.from("goals").update({ target_value, updated_at: new Date().toISOString() }).eq("id", id);
+  };
+
+  const deleteGoal = async (id: string) => {
+    if (!supabase) return;
+    await supabase.from("goals").delete().eq("id", id);
+  };
+
+  return { goals, loading, createGoal, updateGoal, deleteGoal };
 }
 
 /** Get the primary revenue goal for use in reports (replaces hardcoded constant) */

@@ -9,6 +9,7 @@ import {
   Building2,
   Users,
   BarChart3,
+  Target,
   Search,
   Bell,
   Settings,
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { label: "Companies", path: "/companies", icon: Building2 },
   { label: "Contacts", path: "/contacts", icon: Users },
   { label: "Reports", path: "/reports", icon: BarChart3 },
+  { label: "Goals", path: "/goals", icon: Target },
   { label: "Calendar", path: "/calendar", icon: CalendarDays },
 ];
 

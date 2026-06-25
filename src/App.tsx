@@ -13,6 +13,7 @@ import CompanyDetail from "./pages/CompanyDetail";
 import ContactsList from "./pages/ContactsList";
 import ContactDetail from "./pages/ContactDetail";
 import ReportsPage from "./pages/ReportsPage";
+import GoalsPage from "./pages/GoalsPage";
 
 function App() {
   return (
@@ -106,6 +107,16 @@ function App() {
               <ProtectedRoute>
                 <AppShell>
                   <BidCalendarPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/goals"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <GoalsPage />
                 </AppShell>
               </ProtectedRoute>
             }

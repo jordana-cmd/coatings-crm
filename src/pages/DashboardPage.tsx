@@ -1,9 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { useDashboard } from "../hooks/useDashboard";
 import { useOpportunities } from "../hooks/useOpportunities";
+import { useRevenueGoal } from "../hooks/useGoals";
+import { useClosedWonVsGoal } from "../hooks/useReports";
+import { daysElapsedInYear, daysInYear } from "../config/constants";
 import { STAGE_LABELS, PIPELINE_LABELS, type Pipeline } from "../lib/pipelines";
 import KpiCard from "../components/dashboard/KpiCard";
-import { DollarSign, BarChart3, Shield } from "lucide-react";
+import { DollarSign, BarChart3, Shield, Target } from "lucide-react";
 
 function fmt$(n: number) {
   if (n === 0) return "—";
@@ -12,6 +15,45 @@ function fmt$(n: number) {
 function fmtPct(n: number | null) {
   if (n == null) return "—";
   return (n * 100).toFixed(1) + "%";
+}
+
+function GoalPaceCard() {
+  const navigate = useNavigate();
+  const { target, year } = useRevenueGoal();
+  const { data: wonData, loading } = useClosedWonVsGoal();
+
+  if (loading) return null;
+
+  const totalWon = wonData.reduce((s, r) => s + r.closed_won_ytd, 0);
+  const elapsed = daysElapsedInYear(year);
+  const total = daysInYear(year);
+  const projected = elapsed > 0 ? (totalWon / elapsed) * total : 0;
+  const onPace = projected >= target;
+  const pct = target > 0 ? Math.min(totalWon / target, 1) : 0;
+  const fmt = (n: number) => "$" + n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+
+  return (
+    <button onClick={() => navigate("/goals")}
+      className="w-full bg-card rounded-2xl p-4 flex items-center gap-4 active:bg-gray-50 text-left"
+      style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)" }}>
+      <Target size={20} className={onPace ? "text-gate-met" : "text-brand"} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-xs font-medium text-label">{year} Revenue Goal</span>
+          <span className={`text-xs font-semibold ${onPace ? "text-gate-met" : "text-brand"}`}>
+            {onPace ? "On pace" : "Behind pace"}
+          </span>
+        </div>
+        <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div className={`absolute inset-y-0 left-0 rounded-full ${onPace ? "bg-gate-met" : "bg-brand"}`}
+            style={{ width: `${pct * 100}%` }} />
+        </div>
+        <p className="text-[10px] text-subtle mt-1">
+          {fmt(totalWon)} of {fmt(target)} · projected {fmt(Math.round(projected))}
+        </p>
+      </div>
+    </button>
+  );
 }
 
 export default function DashboardPage() {
@@ -75,6 +117,9 @@ export default function DashboardPage() {
           badge={<Shield size={14} className="text-subtle" />}
         />
       </div>
+
+      {/* Goal pace summary */}
+      <GoalPaceCard />
 
       {/* Recent opps table */}
       <div className="bg-card rounded-2xl overflow-hidden"
