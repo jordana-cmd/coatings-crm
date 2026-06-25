@@ -8,6 +8,7 @@ import {
   Sun,
   Building2,
   Users,
+  BarChart3,
   Search,
   Bell,
   Settings,
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { label: "Opportunities", path: "/opportunities", icon: FolderKanban },
   { label: "Companies", path: "/companies", icon: Building2 },
   { label: "Contacts", path: "/contacts", icon: Users },
+  { label: "Reports", path: "/reports", icon: BarChart3 },
   { label: "Calendar", path: "/calendar", icon: CalendarDays },
 ];
 
