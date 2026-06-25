@@ -590,6 +590,48 @@ export type Database = {
           },
         ]
       }
+      goals: {
+        Row: {
+          created_at: string
+          goal_type: string
+          id: string
+          owner_id: string | null
+          period: string
+          period_month: number | null
+          period_quarter: number | null
+          period_year: number
+          pipeline: string | null
+          target_value: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          goal_type: string
+          id?: string
+          owner_id?: string | null
+          period: string
+          period_month?: number | null
+          period_quarter?: number | null
+          period_year: number
+          pipeline?: string | null
+          target_value: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          goal_type?: string
+          id?: string
+          owner_id?: string | null
+          period?: string
+          period_month?: number | null
+          period_quarter?: number | null
+          period_year?: number
+          pipeline?: string | null
+          target_value?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       opportunities: {
         Row: {
           amount: number | null
@@ -706,6 +748,55 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_customer_concentration"
             referencedColumns: ["company_id"]
+          },
+        ]
+      }
+      opportunity_stage_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          from_stage: string | null
+          id: string
+          opportunity_id: string
+          to_stage: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          from_stage?: string | null
+          id?: string
+          opportunity_id: string
+          to_stage: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          from_stage?: string | null
+          id?: string
+          opportunity_id?: string
+          to_stage?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_stage_history_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunity_stage_history_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "v_closing_this_month"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunity_stage_history_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "v_stale_leaks"
+            referencedColumns: ["id"]
           },
         ]
       }

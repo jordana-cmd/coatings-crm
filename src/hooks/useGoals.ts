@@ -1,0 +1,194 @@
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
+import type { Database } from "../lib/database.types";
+
+type PipelineEnum = Database["public"]["Enums"]["pipeline_type"];
+
+type GoalRow = Database["public"]["Tables"]["goals"]["Row"];
+
+export type GoalType = "REVENUE_WON" | "BIDS_SUBMITTED" | "WALKS_ATTENDED" | "OPPS_SOURCED" | "PROPOSALS_SENT";
+
+export interface GoalWithProgress extends GoalRow {
+  actual: number;
+  pct: number;
+  pace: "ahead" | "on_pace" | "behind";
+  projected: number;
+}
+
+function periodRange(goal: GoalRow): { start: Date; end: Date; totalDays: number } {
+  const y = goal.period_year;
+  if (goal.period === "ANNUAL") {
+    return { start: new Date(y, 0, 1), end: new Date(y + 1, 0, 1), totalDays: (y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0)) ? 366 : 365 };
+  }
+  if (goal.period === "QUARTERLY" && goal.period_quarter) {
+    const m0 = (goal.period_quarter - 1) * 3;
+    const s = new Date(y, m0, 1);
+    const e = new Date(y, m0 + 3, 1);
+    return { start: s, end: e, totalDays: Math.round((e.getTime() - s.getTime()) / 86400000) };
+  }
+  if (goal.period === "MONTHLY" && goal.period_month) {
+    const s = new Date(y, goal.period_month - 1, 1);
+    const e = new Date(y, goal.period_month, 1);
+    return { start: s, end: e, totalDays: Math.round((e.getTime() - s.getTime()) / 86400000) };
+  }
+  return { start: new Date(y, 0, 1), end: new Date(y + 1, 0, 1), totalDays: 365 };
+}
+
+function computePace(actual: number, target: number, elapsed: number, totalDays: number): { pace: "ahead" | "on_pace" | "behind"; projected: number } {
+  if (elapsed <= 0 || totalDays <= 0) return { pace: "behind", projected: 0 };
+  const projected = (actual / elapsed) * totalDays;
+  const ratio = projected / target;
+  const pace = ratio >= 1.05 ? "ahead" : ratio >= 0.95 ? "on_pace" : "behind";
+  return { pace, projected };
+}
+
+export function useGoals() {
+  const [goals, setGoals] = useState<GoalWithProgress[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!supabase) return;
+
+    (async () => {
+      setLoading(true);
+      const { data: goalRows } = await supabase.from("goals").select("*").order("created_at");
+      if (!goalRows || goalRows.length === 0) { setLoading(false); return; }
+
+      const results: GoalWithProgress[] = [];
+
+      for (const goal of goalRows) {
+        const { start, end, totalDays } = periodRange(goal);
+        const startIso = start.toISOString();
+        const endIso = end.toISOString();
+        const now = new Date();
+        const elapsed = Math.max(0, Math.floor((Math.min(now.getTime(), end.getTime()) - start.getTime()) / 86400000));
+        const pipeFilter = goal.pipeline;
+
+        let actual = 0;
+
+        switch (goal.goal_type) {
+          case "REVENUE_WON": {
+            // SUM(amount) for WON opps. Date basis: updated_at (when status changed to WON),
+            // falling back to created_at. completed_at is for job completion, not the win date.
+            let q = supabase.from("opportunities").select("amount, updated_at, created_at")
+              .eq("status", "WON")
+              .not("amount", "is", null);
+            if (pipeFilter) q = q.eq("pipeline", pipeFilter as PipelineEnum);
+            const { data: wonOpps } = await q;
+            actual = (wonOpps ?? [])
+              .filter((o) => {
+                const d = new Date(o.updated_at ?? o.created_at);
+                return d >= start && d < end;
+              })
+              .reduce((s, o) => s + Number(o.amount ?? 0), 0);
+            break;
+          }
+
+          case "BIDS_SUBMITTED": {
+            // EXACT count from stage history: distinct opps that entered SUBMITTED in the period.
+            // Uses opportunity_stage_history.to_stage = 'SUBMITTED' (exact transition record).
+            let q = supabase.from("opportunity_stage_history").select("opportunity_id")
+              .eq("to_stage", "SUBMITTED")
+              .gte("changed_at", startIso)
+              .lt("changed_at", endIso);
+            const { data } = await q;
+            // Distinct opportunity_ids; filter by pipeline if needed
+            let oppIds = [...new Set((data ?? []).map((r) => r.opportunity_id))];
+            if (pipeFilter && oppIds.length > 0) {
+              const { data: opps } = await supabase.from("opportunities").select("id").in("id", oppIds).eq("pipeline", pipeFilter as PipelineEnum);
+              oppIds = (opps ?? []).map((o) => o.id);
+            }
+            actual = oppIds.length;
+            break;
+          }
+
+          case "WALKS_ATTENDED": {
+            // Count activities of type PREBID_WALK logged in the period.
+            let q = supabase.from("activities").select("id")
+              .eq("type", "PREBID_WALK")
+              .gte("logged_at", startIso)
+              .lt("logged_at", endIso);
+            // Pipeline filter requires joining through opportunities — do client-side if filtered
+            if (pipeFilter) {
+              const { data: oppIds } = await supabase.from("opportunities").select("id").eq("pipeline", pipeFilter as PipelineEnum);
+              const ids = (oppIds ?? []).map((o) => o.id);
+              if (ids.length > 0) q = q.in("opportunity_id", ids);
+              else { actual = 0; break; }
+            }
+            const { data } = await q;
+            actual = data?.length ?? 0;
+            break;
+          }
+
+          case "OPPS_SOURCED": {
+            // Count opps created in the period.
+            let q = supabase.from("opportunities").select("id")
+              .gte("created_at", startIso)
+              .lt("created_at", endIso);
+            if (pipeFilter) q = q.eq("pipeline", pipeFilter as PipelineEnum);
+            const { data } = await q;
+            actual = data?.length ?? 0;
+            break;
+          }
+
+          case "PROPOSALS_SENT": {
+            // EXACT count from stage history: distinct opps that entered a proposal-equivalent stage.
+            // PUBLIC_BID/GC_CHASE: SUBMITTED; FACILITY: PROPOSAL.
+            const proposalStages = ["SUBMITTED", "PROPOSAL"];
+            let q = supabase.from("opportunity_stage_history").select("opportunity_id")
+              .in("to_stage", proposalStages)
+              .gte("changed_at", startIso)
+              .lt("changed_at", endIso);
+            const { data } = await q;
+            let oppIds = [...new Set((data ?? []).map((r) => r.opportunity_id))];
+            if (pipeFilter && oppIds.length > 0) {
+              const { data: opps } = await supabase.from("opportunities").select("id").in("id", oppIds).eq("pipeline", pipeFilter as PipelineEnum);
+              oppIds = (opps ?? []).map((o) => o.id);
+            }
+            actual = oppIds.length;
+            break;
+          }
+        }
+
+        const target = Number(goal.target_value);
+        const pct = target > 0 ? actual / target : 0;
+        const { pace, projected } = computePace(actual, target, elapsed, totalDays);
+
+        results.push({ ...goal, actual, pct, pace, projected });
+      }
+
+      setGoals(results);
+      setLoading(false);
+    })();
+  }, []);
+
+  return { goals, loading };
+}
+
+/** Get the primary revenue goal for use in reports (replaces hardcoded constant) */
+export function useRevenueGoal(): { target: number; year: number; loading: boolean } {
+  const [target, setTarget] = useState(10_000_000); // fallback
+  const [year, setYear] = useState(2027);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!supabase) { setLoading(false); return; }
+    supabase
+      .from("goals")
+      .select("target_value, period_year")
+      .eq("goal_type", "REVENUE_WON")
+      .eq("period", "ANNUAL")
+      .is("owner_id", null)
+      .order("period_year", { ascending: false })
+      .limit(1)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setTarget(Number(data[0].target_value));
+          setYear(data[0].period_year);
+        }
+        setLoading(false);
+      });
+  }, []);
+
+  return { target, year, loading };
+}

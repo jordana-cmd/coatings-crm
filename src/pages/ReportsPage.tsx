@@ -13,7 +13,8 @@ import {
   type StaleRow,
   type BidOutRow,
 } from "../hooks/useReports";
-import { ANNUAL_GOAL_CLOSED_WON, GOAL_YEAR, daysElapsedInYear, daysInYear } from "../config/constants";
+import { daysElapsedInYear, daysInYear } from "../config/constants";
+import { useRevenueGoal } from "../hooks/useGoals";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   PieChart, Pie,
@@ -76,17 +77,17 @@ function ForecastChart({ filter }: { filter: FilterPipeline }) {
 
 // ── Report 2: Closed-Won vs Goal ──
 
-function ClosedWonGoalChart({ filter }: { filter: FilterPipeline }) {
+function ClosedWonGoalChart({ filter, goalTarget, goalYear }: { filter: FilterPipeline; goalTarget: number; goalYear: number }) {
   const { data, loading } = useClosedWonVsGoal();
   if (loading) return <div className="h-32 flex items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-brand" /></div>;
 
   const filtered = filter === "ALL" ? data : data.filter((d) => d.pipeline === filter);
   const totalWon = filtered.reduce((s, r) => s + r.closed_won_ytd, 0);
-  const goal = ANNUAL_GOAL_CLOSED_WON;
+  const goal = goalTarget;
   const pct = goal > 0 ? Math.min(totalWon / goal, 1) : 0;
 
-  const elapsed = daysElapsedInYear(GOAL_YEAR);
-  const totalDays = daysInYear(GOAL_YEAR);
+  const elapsed = daysElapsedInYear(goalYear);
+  const totalDays = daysInYear(goalYear);
   const runRate = elapsed > 0 ? (totalWon / elapsed) * totalDays : 0;
   const onPace = runRate >= goal;
 
@@ -415,7 +416,7 @@ function BidsOutTable({ filter }: { filter: FilterPipeline }) {
 
 // ── Report 8: Coverage Gap ──
 
-function CoverageGapCard({ filter }: { filter: FilterPipeline }) {
+function CoverageGapCard({ filter, goalTarget }: { filter: FilterPipeline; goalTarget: number }) {
   const { data: wonData, loading: wonLoading } = useClosedWonVsGoal();
   const { data: forecastData, loading: forecastLoading } = useForecast90d();
 
@@ -429,7 +430,7 @@ function CoverageGapCard({ filter }: { filter: FilterPipeline }) {
   const fFiltered = filter === "ALL" ? forecastData : forecastData.filter((d) => d.pipeline === filter);
   const weightedPipeline = fFiltered.reduce((s, r) => s + r.total_weighted, 0);
 
-  const { remaining, coverage, verdict } = computeCoverageGap(weightedPipeline, closedWonYtd, ANNUAL_GOAL_CLOSED_WON);
+  const { remaining, coverage, verdict } = computeCoverageGap(weightedPipeline, closedWonYtd, goalTarget);
 
   const verdictColor = verdict === "green" ? "text-gate-met" : verdict === "yellow" ? "text-pending" : "text-brand";
   const verdictBg = verdict === "green" ? "bg-gate-met-light" : verdict === "yellow" ? "bg-pending-light" : "bg-brand-light";
@@ -464,6 +465,7 @@ function CoverageGapCard({ filter }: { filter: FilterPipeline }) {
 
 export default function ReportsPage() {
   const [filter, setFilter] = useState<FilterPipeline>("ALL");
+  const { target: goalTarget, year: goalYear } = useRevenueGoal();
 
   return (
     <div className="space-y-6 pb-16 md:pb-6">
@@ -484,8 +486,8 @@ export default function ReportsPage() {
       <div>
         <h2 className="text-xs font-semibold text-label uppercase tracking-wider mb-3">Owner View</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <ReportCard title="Closed-Won vs Goal" subtitle={`Are we on pace for ${fmt$(ANNUAL_GOAL_CLOSED_WON)} in ${GOAL_YEAR}?`}>
-            <ClosedWonGoalChart filter={filter} />
+          <ReportCard title="Closed-Won vs Goal" subtitle={`Are we on pace for ${fmt$(goalTarget)} in ${goalYear}?`}>
+            <ClosedWonGoalChart filter={filter} goalTarget={goalTarget} goalYear={goalYear} />
           </ReportCard>
 
           <ReportCard title="Weighted Forecast — Next 90 Days" subtitle="Can we make payroll without overpromising capacity?">
@@ -509,7 +511,7 @@ export default function ReportsPage() {
       <div>
         <h2 className="text-xs font-semibold text-label uppercase tracking-wider mb-3">My Worklist</h2>
         <div className="space-y-4">
-          <CoverageGapCard filter={filter} />
+          <CoverageGapCard filter={filter} goalTarget={goalTarget} />
           <ClosingThisMonthTable filter={filter} />
           <StaleLeaksTable filter={filter} />
           <BidsOutTable filter={filter} />
