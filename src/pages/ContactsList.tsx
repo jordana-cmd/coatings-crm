@@ -2,7 +2,7 @@ import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useContactList } from "../hooks/useContacts";
 import { supabase } from "../lib/supabase";
-import { Search, Phone, Mail, UserCheck } from "lucide-react";
+import { Search, Phone, Mail, UserCheck, ExternalLink } from "lucide-react";
 import type { Database } from "../lib/database.types";
 
 type ContactRole = Database["public"]["Enums"]["contact_role"];
@@ -100,13 +100,21 @@ export default function ContactsList() {
                     {ROLE_LABELS[c.role]} · {c.company_name ?? "—"}
                   </p>
                 </button>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   <a href={`tel:${c.phone}`} className="p-2 text-brand rounded-lg hover:bg-brand-light">
                     <Phone size={16} />
                   </a>
                   {c.email && (
                     <a href={`mailto:${c.email}`} className="p-2 text-brand rounded-lg hover:bg-brand-light">
                       <Mail size={16} />
+                    </a>
+                  )}
+                  {c.linkedin_url && (
+                    <a href={c.linkedin_url} target="_blank" rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="p-2 text-blue-600 rounded-lg hover:bg-blue-50"
+                      title="LinkedIn">
+                      <ExternalLink size={14} />
                     </a>
                   )}
                 </div>

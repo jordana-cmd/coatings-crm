@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useContact, useContactActivities } from "../hooks/useContacts";
-import { Phone, Mail, UserCheck } from "lucide-react";
+import { Phone, Mail, UserCheck, ExternalLink } from "lucide-react";
 
 const ROLE_LABELS: Record<string, string> = {
   PM: "PM", ESTIMATOR: "Estimator", SUPER: "Super", FM: "FM",
@@ -59,13 +59,19 @@ export default function ContactDetail() {
             {company_name ?? "Company"}
           </button>
         </div>
-        <div className="flex items-center gap-4 mt-3">
+        <div className="flex flex-wrap items-center gap-4 mt-3">
           <a href={`tel:${c.phone}`} className="flex items-center gap-1.5 text-sm text-brand font-medium">
             <Phone size={16} /> {c.phone}
           </a>
           {c.email && (
             <a href={`mailto:${c.email}`} className="flex items-center gap-1.5 text-sm text-brand font-medium">
               <Mail size={16} /> {c.email}
+            </a>
+          )}
+          {c.linkedin_url && (
+            <a href={c.linkedin_url} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-sm text-blue-600 font-medium">
+              <ExternalLink size={14} /> LinkedIn
             </a>
           )}
         </div>

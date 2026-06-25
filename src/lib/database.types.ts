@@ -467,6 +467,7 @@ export type Database = {
           email: string | null
           id: string
           is_decision_maker: boolean
+          linkedin_url: string | null
           name: string
           phone: string
           role: Database["public"]["Enums"]["contact_role"]
@@ -478,6 +479,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_decision_maker?: boolean
+          linkedin_url?: string | null
           name: string
           phone: string
           role: Database["public"]["Enums"]["contact_role"]
@@ -489,6 +491,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_decision_maker?: boolean
+          linkedin_url?: string | null
           name?: string
           phone?: string
           role?: Database["public"]["Enums"]["contact_role"]
