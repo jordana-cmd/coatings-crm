@@ -87,9 +87,9 @@ export default function ContactsList() {
             {filtered.map((c) => (
               <div key={c.id} className="px-5 py-4 flex items-center justify-between gap-3">
                 <button onClick={() => navigate(`/contacts/${c.id}`)}
-                  className="min-w-0 text-left flex-1">
+                  className="min-w-0 text-left flex-1 cursor-pointer">
                   <div className="flex items-center gap-2">
-                    <p className="font-medium text-sm text-heading truncate">{c.name}</p>
+                    <p className="font-medium text-sm nav-link truncate">{c.name}</p>
                     {c.is_decision_maker && (
                       <span className="flex items-center gap-0.5 text-[10px] text-gate-met font-medium shrink-0">
                         <UserCheck size={10} /> DM

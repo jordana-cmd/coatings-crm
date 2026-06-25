@@ -254,7 +254,7 @@ function ClosingThisMonthTable({ filter }: { filter: FilterPipeline }) {
             <tbody className="divide-y divide-card-border">
               {sorted.map((r) => (
                 <tr key={r.id} onClick={() => navigate(`/opp/${r.id}`)} className="hover:bg-gray-50 cursor-pointer">
-                  <td className="px-4 py-3 font-medium text-heading">{r.name}</td>
+                  <td className="px-4 py-3 font-medium nav-link">{r.name}</td>
                   <td className="px-4 py-3 text-label">{r.company_name}</td>
                   <td className="px-4 py-3 text-right text-heading">{r.amount != null ? fmt$(r.amount) : "—"}</td>
                   <td className="px-4 py-3 text-right font-semibold text-heading">{r.weighted_amount != null ? fmt$(r.weighted_amount) : "—"}</td>
@@ -323,7 +323,7 @@ function StaleLeaksTable({ filter }: { filter: FilterPipeline }) {
                 const missing = !r.next_step_date;
                 return (
                   <tr key={r.id} onClick={() => navigate(`/opp/${r.id}`)} className="hover:bg-gray-50 cursor-pointer">
-                    <td className="px-4 py-3 font-medium text-heading">{r.name}</td>
+                    <td className="px-4 py-3 font-medium nav-link">{r.name}</td>
                     <td className="px-4 py-3 text-label">{r.company_name}</td>
                     <td className="px-4 py-3 text-right text-heading">{r.amount != null ? fmt$(r.amount) : "—"}</td>
                     <td className="px-4 py-3"><span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-heading">{STAGE_LABELS[r.stage] ?? r.stage}</span></td>
@@ -387,7 +387,7 @@ function BidsOutTable({ filter }: { filter: FilterPipeline }) {
                 const urgent = r.days_until != null && r.days_until <= 7 && r.days_until >= 0;
                 return (
                   <tr key={`${r.opp_id}-${r.gc_name ?? ""}`} onClick={() => navigate(`/opp/${r.opp_id}`)} className="hover:bg-gray-50 cursor-pointer">
-                    <td className="px-4 py-3 font-medium text-heading">{r.project_name}</td>
+                    <td className="px-4 py-3 font-medium nav-link">{r.project_name}</td>
                     <td className="px-4 py-3 text-label">{r.company_name}</td>
                     <td className="px-4 py-3 text-right text-heading">{r.our_number != null ? fmt$(r.our_number) : "—"}</td>
                     <td className="px-4 py-3 text-label text-xs">{r.decision_date ? new Date(r.decision_date).toLocaleDateString() : "—"}</td>

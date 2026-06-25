@@ -215,7 +215,7 @@ export default function CompanyDetail() {
                 {contacts.map((c) => (
                   <div key={c.id} className="rounded-lg border border-card-border p-3">
                     <div className="flex items-center justify-between">
-                      <button onClick={() => navigate(`/contacts/${c.id}`)} className="font-medium text-sm text-heading active:text-brand truncate text-left">{c.name}</button>
+                      <button onClick={() => navigate(`/contacts/${c.id}`)} className="font-medium text-sm nav-link truncate text-left">{c.name}</button>
                       <div className="flex items-center gap-1 shrink-0">
                         {c.is_decision_maker && <span className="flex items-center gap-0.5 text-[10px] text-gate-met font-medium"><UserCheck size={12} /> DM</span>}
                         <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-heading">{ROLE_LABELS[c.role]}</span>

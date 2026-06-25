@@ -146,7 +146,7 @@ export default function DashboardPage() {
                 {recentOpps.map((opp) => (
                   <tr key={opp.id} onClick={() => navigate(`/opp/${opp.id}`)}
                     className="hover:bg-gray-50 cursor-pointer transition-colors">
-                    <td className="px-5 py-3.5 font-medium text-heading">{opp.name}</td>
+                    <td className="px-5 py-3.5 font-medium nav-link">{opp.name}</td>
                     <td className="px-5 py-3.5 text-label">{opp.company_name ?? "—"}</td>
                     <td className="px-5 py-3.5">
                       <span className="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-[10px] font-medium text-heading">

@@ -177,7 +177,7 @@ export default function CompaniesList() {
                   {sorted.map((c) => (
                     <tr key={c.id} onClick={() => navigate(`/companies/${c.id}`)}
                       className="hover:bg-gray-50 cursor-pointer">
-                      <td className="px-4 py-3 font-medium text-heading">{c.name}</td>
+                      <td className="px-4 py-3 font-medium nav-link">{c.name}</td>
                       <td className="px-4 py-3">
                         <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-heading">
                           {TYPE_LABELS[c.type]}
@@ -210,7 +210,7 @@ export default function CompaniesList() {
                   className="w-full text-left px-5 py-4 active:bg-gray-50">
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <div className="flex items-center gap-2 min-w-0">
-                      <p className="font-medium text-sm text-heading truncate">{c.name}</p>
+                      <p className="font-medium text-sm nav-link truncate">{c.name}</p>
                       <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-heading shrink-0">
                         {TYPE_LABELS[c.type]}
                       </span>

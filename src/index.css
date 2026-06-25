@@ -52,3 +52,15 @@ body {
   margin: 0;
   background: var(--color-page);
 }
+
+/* Shared navigational link affordance */
+.nav-link {
+  cursor: pointer;
+  color: var(--color-heading);
+  transition: color 0.15s;
+}
+.nav-link:hover {
+  color: var(--color-brand);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
