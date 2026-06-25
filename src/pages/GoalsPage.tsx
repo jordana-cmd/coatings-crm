@@ -118,8 +118,8 @@ export default function GoalsPage() {
           {/* Revenue goals */}
           {revenueGoals.length > 0 && (
             <div>
-              <h2 className="text-xs font-semibold text-label uppercase tracking-wider mb-2">Revenue Goals <span className="normal-case font-normal">— outcomes</span></h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <h2 className="text-xs font-semibold text-label uppercase tracking-wider mb-3">Revenue Goals <span className="normal-case font-normal">— outcomes</span></h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {revenueGoals.map((g) => (
                   <div key={g.id} className="relative group">
                     <GoalCard g={g} />
@@ -136,8 +136,8 @@ export default function GoalsPage() {
           {/* Activity goals */}
           {activityGoals.length > 0 && (
             <div>
-              <h2 className="text-xs font-semibold text-label uppercase tracking-wider mb-2">Activity Goals <span className="normal-case font-normal">— leading indicators you control</span></h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <h2 className="text-xs font-semibold text-label uppercase tracking-wider mb-3">Activity Goals <span className="normal-case font-normal">— leading indicators you control</span></h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {activityGoals.map((g) => (
                   <div key={g.id} className="relative group">
                     <GoalCard g={g} />
