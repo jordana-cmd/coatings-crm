@@ -80,17 +80,28 @@ function Th({ label, sortKey, active, dir, onSort }: {
 
 // ── Main ──
 
+const TYPE_FILTER_OPTIONS: { value: CompanyType | "ALL"; label: string }[] = [
+  { value: "ALL", label: "All" },
+  { value: "GC", label: "GC" },
+  { value: "AWARDING_AUTHORITY", label: "Authority" },
+  { value: "PLANT_OWNER", label: "Plant Owner" },
+  { value: "ARCHITECT", label: "Architect" },
+];
+
 export default function CompaniesList() {
   const { companies, loading, createCompany } = useCompanyList();
   const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<CompanyType | "ALL">("ALL");
   const [showCreate, setShowCreate] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("last_activity_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const navigate = useNavigate();
 
-  const filtered = search
-    ? companies.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
-    : companies;
+  const filtered = companies.filter((c) => {
+    if (typeFilter !== "ALL" && c.type !== typeFilter) return false;
+    if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
 
   const sorted = useMemo(() => sortCompanies(filtered, sortKey, sortDir), [filtered, sortKey, sortDir]);
 
@@ -121,17 +132,30 @@ export default function CompaniesList() {
         </button>
       </div>
 
-      <div className="relative mb-4">
+      {/* Type filter pills */}
+      <div className="flex gap-1 mb-3 overflow-x-auto">
+        {TYPE_FILTER_OPTIONS.map((f) => (
+          <button key={f.value} onClick={() => setTypeFilter(f.value)}
+            className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors
+              ${typeFilter === f.value ? "bg-brand text-white" : "bg-gray-100 text-label hover:text-heading"}`}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="relative mb-3">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-label" />
         <input type="text" placeholder="Search companies..." value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full bg-card rounded-lg border border-card-border pl-9 pr-3 py-2.5 text-sm text-heading
-                     focus:outline-none focus:ring-2 focus:ring-brand" />
+                     focus:outline-none focus:ring-2 focus:ring-brand-ring focus:border-brand/40" />
       </div>
+
+      <p className="text-[10px] text-subtle mb-2">{sorted.length} of {companies.length} companies</p>
 
       {sorted.length === 0 ? (
         <div className="bg-card rounded-xl shadow-sm p-12 text-center">
-          <p className="text-label">{search ? "No matches" : "No companies yet."}</p>
+          <p className="text-label">{search || typeFilter !== "ALL" ? "No companies match — try clearing a filter" : "No companies yet."}</p>
         </div>
       ) : (
         <>

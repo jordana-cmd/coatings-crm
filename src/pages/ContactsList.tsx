@@ -17,12 +17,21 @@ const ROLE_OPTIONS: ContactRole[] = ["PM", "ESTIMATOR", "SUPER", "FM", "PURCHASI
 export default function ContactsList() {
   const { contacts, loading, createContact } = useContactList();
   const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<ContactRole | "ALL">("ALL");
   const [showCreate, setShowCreate] = useState(false);
   const navigate = useNavigate();
 
-  const filtered = search
-    ? contacts.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
-    : contacts;
+  const filtered = contacts.filter((c) => {
+    if (roleFilter !== "ALL" && c.role !== roleFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      const matches = c.name.toLowerCase().includes(q)
+        || (c.title ?? "").toLowerCase().includes(q)
+        || (c.company_name ?? "").toLowerCase().includes(q);
+      if (!matches) return false;
+    }
+    return true;
+  });
 
   if (loading) {
     return (
@@ -42,17 +51,35 @@ export default function ContactsList() {
         </button>
       </div>
 
-      <div className="relative mb-4">
+      {/* Role filter pills */}
+      <div className="flex gap-1 mb-3 overflow-x-auto">
+        <button onClick={() => setRoleFilter("ALL")}
+          className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors
+            ${roleFilter === "ALL" ? "bg-brand text-white" : "bg-gray-100 text-label hover:text-heading"}`}>
+          All
+        </button>
+        {ROLE_OPTIONS.map((r) => (
+          <button key={r} onClick={() => setRoleFilter(r)}
+            className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors
+              ${roleFilter === r ? "bg-brand text-white" : "bg-gray-100 text-label hover:text-heading"}`}>
+            {ROLE_LABELS[r]}
+          </button>
+        ))}
+      </div>
+
+      <div className="relative mb-3">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-label" />
-        <input type="text" placeholder="Search contacts..." value={search}
+        <input type="text" placeholder="Search name, title, or company..." value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full bg-card rounded-lg border border-card-border pl-9 pr-3 py-2.5 text-sm text-heading
-                     focus:outline-none focus:ring-2 focus:ring-brand" />
+                     focus:outline-none focus:ring-2 focus:ring-brand-ring focus:border-brand/40" />
       </div>
+
+      <p className="text-[10px] text-subtle mb-2">{filtered.length} of {contacts.length} contacts</p>
 
       {filtered.length === 0 ? (
         <div className="bg-card rounded-xl shadow-sm p-12 text-center">
-          <p className="text-label">{search ? "No matches" : "No contacts yet."}</p>
+          <p className="text-label">No contacts match — try clearing a filter</p>
         </div>
       ) : (
         <div className="bg-card rounded-xl shadow-sm overflow-hidden">
