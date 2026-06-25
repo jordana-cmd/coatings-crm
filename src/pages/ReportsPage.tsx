@@ -1,9 +1,17 @@
-import { useState } from "react";
-import { PIPELINE_LABELS, type Pipeline } from "../lib/pipelines";
+import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { PIPELINE_LABELS, STAGE_LABELS, type Pipeline } from "../lib/pipelines";
 import {
   useForecast90d,
   useClosedWonVsGoal,
   useCustomerConcentration,
+  useClosingThisMonth,
+  useStaleLeaks,
+  useBidOutAwaiting,
+  computeCoverageGap,
+  type ClosingRow,
+  type StaleRow,
+  type BidOutRow,
 } from "../hooks/useReports";
 import { ANNUAL_GOAL_CLOSED_WON, GOAL_YEAR, daysElapsedInYear, daysInYear } from "../config/constants";
 import {
@@ -172,6 +180,286 @@ function ConcentrationChart({ filter }: { filter: FilterPipeline }) {
   );
 }
 
+// ── Sortable table helper ──
+
+type SortDir = "asc" | "desc";
+
+function SortTh({ label, active, dir, onClick, align }: {
+  label: string; active: boolean; dir: SortDir; onClick: () => void; align?: "right";
+}) {
+  return (
+    <th className={`px-4 py-3 font-medium cursor-pointer select-none hover:text-heading text-[10px] text-label uppercase tracking-wider ${align === "right" ? "text-right" : "text-left"}`}
+      onClick={onClick}>
+      <span className="inline-flex items-center gap-0.5">
+        {label}
+        {active && <span className="text-brand text-[9px]">{dir === "asc" ? "\u25B2" : "\u25BC"}</span>}
+      </span>
+    </th>
+  );
+}
+
+function sortRows<T>(rows: T[], key: keyof T, dir: SortDir): T[] {
+  return [...rows].sort((a, b) => {
+    const av = a[key]; const bv = b[key];
+    if (av == null && bv == null) return 0;
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    let cmp: number;
+    if (typeof av === "number" && typeof bv === "number") cmp = av - bv;
+    else cmp = String(av).localeCompare(String(bv));
+    return dir === "asc" ? cmp : -cmp;
+  });
+}
+
+function relDays(iso: string | null): string {
+  if (!iso) return "—";
+  const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  if (d === 0) return "Today";
+  if (d === 1) return "1d ago";
+  return `${d}d ago`;
+}
+
+// ── Report 5: Closing This Month ──
+
+function ClosingThisMonthTable({ filter }: { filter: FilterPipeline }) {
+  const navigate = useNavigate();
+  const { data, loading } = useClosingThisMonth();
+  const [sortKey, setSortKey] = useState<keyof ClosingRow>("weighted_amount");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const filtered = filter === "ALL" ? data : data.filter((d) => d.pipeline === filter);
+  const sorted = useMemo(() => sortRows(filtered, sortKey, sortDir), [filtered, sortKey, sortDir]);
+
+  const toggle = (k: keyof ClosingRow) => {
+    if (k === sortKey) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else { setSortKey(k); setSortDir(k === "name" || k === "company_name" ? "asc" : "desc"); }
+  };
+
+  return (
+    <ReportCard title="Closing This Month" subtitle="Work from the top.">
+      {loading ? <div className="flex justify-center py-6"><div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-brand" /></div>
+      : sorted.length === 0 ? <p className="text-sm text-subtle text-center py-6">No opps closing within 30 days</p>
+      : <>
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="border-b border-card-border">
+              <SortTh label="Name" active={sortKey==="name"} dir={sortDir} onClick={() => toggle("name")} />
+              <SortTh label="Company" active={sortKey==="company_name"} dir={sortDir} onClick={() => toggle("company_name")} />
+              <SortTh label="Amount" active={sortKey==="amount"} dir={sortDir} onClick={() => toggle("amount")} align="right" />
+              <SortTh label="Weighted" active={sortKey==="weighted_amount"} dir={sortDir} onClick={() => toggle("weighted_amount")} align="right" />
+              <SortTh label="Stage" active={sortKey==="stage"} dir={sortDir} onClick={() => toggle("stage")} />
+              <SortTh label="Next Step" active={sortKey==="next_step"} dir={sortDir} onClick={() => toggle("next_step")} />
+            </tr></thead>
+            <tbody className="divide-y divide-card-border">
+              {sorted.map((r) => (
+                <tr key={r.id} onClick={() => navigate(`/opp/${r.id}`)} className="hover:bg-gray-50 cursor-pointer">
+                  <td className="px-4 py-3 font-medium text-heading">{r.name}</td>
+                  <td className="px-4 py-3 text-label">{r.company_name}</td>
+                  <td className="px-4 py-3 text-right text-heading">{r.amount != null ? fmt$(r.amount) : "—"}</td>
+                  <td className="px-4 py-3 text-right font-semibold text-heading">{r.weighted_amount != null ? fmt$(r.weighted_amount) : "—"}</td>
+                  <td className="px-4 py-3"><span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-heading">{STAGE_LABELS[r.stage] ?? r.stage}</span></td>
+                  <td className="px-4 py-3 text-label text-xs truncate max-w-[150px]">{r.next_step ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="md:hidden space-y-2">
+          {sorted.map((r) => (
+            <button key={r.id} onClick={() => navigate(`/opp/${r.id}`)} className="w-full text-left rounded-lg border border-card-border p-3 active:bg-gray-50">
+              <div className="flex items-center justify-between"><span className="text-sm font-medium text-heading truncate">{r.name}</span><span className="text-sm font-semibold text-heading">{r.weighted_amount != null ? fmt$(r.weighted_amount) : "—"}</span></div>
+              <p className="text-xs text-label mt-0.5">{r.company_name} · {STAGE_LABELS[r.stage] ?? r.stage}</p>
+            </button>
+          ))}
+        </div>
+      </>}
+    </ReportCard>
+  );
+}
+
+// ── Report 6: Stale / Leaks ──
+
+function StaleLeaksTable({ filter }: { filter: FilterPipeline }) {
+  const navigate = useNavigate();
+  const { data, loading } = useStaleLeaks();
+  const [sortKey, setSortKey] = useState<keyof StaleRow>("amount");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const filtered = filter === "ALL" ? data : data.filter((d) => d.pipeline === filter);
+  const sorted = useMemo(() => sortRows(filtered, sortKey, sortDir), [filtered, sortKey, sortDir]);
+
+  const toggle = (k: keyof StaleRow) => {
+    if (k === sortKey) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else { setSortKey(k); setSortDir(k === "name" || k === "company_name" ? "asc" : "desc"); }
+  };
+
+  return (
+    <ReportCard title={`Stale / No-Next-Step${sorted.length > 0 ? ` — ${sorted.length} leak${sorted.length !== 1 ? "s" : ""}` : ""}`}
+      subtitle="Deals leaking from neglect — clear weekly.">
+      {loading ? <div className="flex justify-center py-6"><div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-brand" /></div>
+      : sorted.length === 0 ? <p className="text-sm text-gate-met text-center py-6">No stale deals — pipeline is healthy</p>
+      : <>
+        {sorted.length > 0 && (
+          <div className="mb-3">
+            <span className="rounded-full bg-pending-light text-pending px-2.5 py-0.5 text-[10px] font-semibold">
+              {sorted.length} leak{sorted.length !== 1 ? "s" : ""} — clear to zero
+            </span>
+          </div>
+        )}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="border-b border-card-border">
+              <SortTh label="Name" active={sortKey==="name"} dir={sortDir} onClick={() => toggle("name")} />
+              <SortTh label="Company" active={sortKey==="company_name"} dir={sortDir} onClick={() => toggle("company_name")} />
+              <SortTh label="Amount" active={sortKey==="amount"} dir={sortDir} onClick={() => toggle("amount")} align="right" />
+              <SortTh label="Stage" active={sortKey==="stage"} dir={sortDir} onClick={() => toggle("stage")} />
+              <SortTh label="Last Activity" active={sortKey==="last_activity_at"} dir={sortDir} onClick={() => toggle("last_activity_at")} />
+              <SortTh label="Next Step Date" active={sortKey==="next_step_date"} dir={sortDir} onClick={() => toggle("next_step_date")} />
+            </tr></thead>
+            <tbody className="divide-y divide-card-border">
+              {sorted.map((r) => {
+                const overdue = r.next_step_date && r.next_step_date < new Date().toISOString().slice(0, 10);
+                const missing = !r.next_step_date;
+                return (
+                  <tr key={r.id} onClick={() => navigate(`/opp/${r.id}`)} className="hover:bg-gray-50 cursor-pointer">
+                    <td className="px-4 py-3 font-medium text-heading">{r.name}</td>
+                    <td className="px-4 py-3 text-label">{r.company_name}</td>
+                    <td className="px-4 py-3 text-right text-heading">{r.amount != null ? fmt$(r.amount) : "—"}</td>
+                    <td className="px-4 py-3"><span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-heading">{STAGE_LABELS[r.stage] ?? r.stage}</span></td>
+                    <td className="px-4 py-3 text-label text-xs">{relDays(r.last_activity_at)}</td>
+                    <td className={`px-4 py-3 text-xs font-medium ${overdue ? "text-brand" : missing ? "text-pending" : "text-label"}`}>
+                      {missing ? "Missing" : overdue ? `Overdue (${r.next_step_date})` : r.next_step_date}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="md:hidden space-y-2">
+          {sorted.map((r) => (
+            <button key={r.id} onClick={() => navigate(`/opp/${r.id}`)} className="w-full text-left rounded-lg border border-pending/30 p-3 active:bg-gray-50">
+              <div className="flex items-center justify-between"><span className="text-sm font-medium text-heading truncate">{r.name}</span><span className="text-sm font-semibold text-heading">{r.amount != null ? fmt$(r.amount) : "—"}</span></div>
+              <p className="text-xs text-label mt-0.5">{r.company_name} · {relDays(r.last_activity_at)} · Next: {r.next_step_date ?? "missing"}</p>
+            </button>
+          ))}
+        </div>
+      </>}
+    </ReportCard>
+  );
+}
+
+// ── Report 7: Bids Out Awaiting ──
+
+function BidsOutTable({ filter }: { filter: FilterPipeline }) {
+  const navigate = useNavigate();
+  const { data, loading } = useBidOutAwaiting();
+  const [sortKey, setSortKey] = useState<keyof BidOutRow>("days_until");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const filtered = filter === "ALL" ? data : data.filter((d) => d.pipeline === filter);
+  const sorted = useMemo(() => sortRows(filtered, sortKey, sortDir), [filtered, sortKey, sortDir]);
+
+  const toggle = (k: keyof BidOutRow) => {
+    if (k === sortKey) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else { setSortKey(k); setSortDir(k === "project_name" || k === "company_name" ? "asc" : "desc"); }
+  };
+
+  return (
+    <ReportCard title="Bid Out, Awaiting Decision" subtitle="Awaiting award — follow up before the date.">
+      {loading ? <div className="flex justify-center py-6"><div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-brand" /></div>
+      : sorted.length === 0 ? <p className="text-sm text-subtle text-center py-6">No bids out awaiting decision</p>
+      : <>
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="border-b border-card-border">
+              <SortTh label="Project" active={sortKey==="project_name"} dir={sortDir} onClick={() => toggle("project_name")} />
+              <SortTh label="Company" active={sortKey==="company_name"} dir={sortDir} onClick={() => toggle("company_name")} />
+              <SortTh label="Our Number" active={sortKey==="our_number"} dir={sortDir} onClick={() => toggle("our_number")} align="right" />
+              <SortTh label="Due/Decision" active={sortKey==="decision_date"} dir={sortDir} onClick={() => toggle("decision_date")} />
+              <SortTh label="Days Until" active={sortKey==="days_until"} dir={sortDir} onClick={() => toggle("days_until")} />
+              {filter === "ALL" && <th className="px-4 py-3 text-[10px] text-label uppercase tracking-wider font-medium">GC</th>}
+            </tr></thead>
+            <tbody className="divide-y divide-card-border">
+              {sorted.map((r) => {
+                const overdue = r.days_until != null && r.days_until < 0;
+                const urgent = r.days_until != null && r.days_until <= 7 && r.days_until >= 0;
+                return (
+                  <tr key={`${r.opp_id}-${r.gc_name ?? ""}`} onClick={() => navigate(`/opp/${r.opp_id}`)} className="hover:bg-gray-50 cursor-pointer">
+                    <td className="px-4 py-3 font-medium text-heading">{r.project_name}</td>
+                    <td className="px-4 py-3 text-label">{r.company_name}</td>
+                    <td className="px-4 py-3 text-right text-heading">{r.our_number != null ? fmt$(r.our_number) : "—"}</td>
+                    <td className="px-4 py-3 text-label text-xs">{r.decision_date ? new Date(r.decision_date).toLocaleDateString() : "—"}</td>
+                    <td className={`px-4 py-3 text-xs font-semibold ${overdue ? "text-brand" : urgent ? "text-pending" : "text-heading"}`}>
+                      {r.days_until != null ? (overdue ? `${Math.abs(r.days_until)}d overdue` : `${r.days_until}d`) : "—"}
+                    </td>
+                    {filter === "ALL" && <td className="px-4 py-3 text-label text-xs">{r.gc_name ?? "—"}</td>}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="md:hidden space-y-2">
+          {sorted.map((r) => (
+            <button key={`${r.opp_id}-${r.gc_name ?? ""}`} onClick={() => navigate(`/opp/${r.opp_id}`)} className="w-full text-left rounded-lg border border-card-border p-3 active:bg-gray-50">
+              <div className="flex items-center justify-between"><span className="text-sm font-medium text-heading truncate">{r.project_name}</span><span className="text-sm font-semibold text-heading">{r.our_number != null ? fmt$(r.our_number) : "—"}</span></div>
+              <p className="text-xs text-label mt-0.5">{r.company_name} · {r.days_until != null ? `${r.days_until}d` : "—"}{r.gc_name ? ` · GC: ${r.gc_name}` : ""}</p>
+            </button>
+          ))}
+        </div>
+      </>}
+    </ReportCard>
+  );
+}
+
+// ── Report 8: Coverage Gap ──
+
+function CoverageGapCard({ filter }: { filter: FilterPipeline }) {
+  const { data: wonData, loading: wonLoading } = useClosedWonVsGoal();
+  const { data: forecastData, loading: forecastLoading } = useForecast90d();
+
+  if (wonLoading || forecastLoading) return null;
+
+  const wonFiltered = filter === "ALL" ? wonData : wonData.filter((d) => d.pipeline === filter);
+  const closedWonYtd = wonFiltered.reduce((s, r) => s + r.closed_won_ytd, 0);
+
+  // Weighted pipeline = all open opps' weighted amounts (approximate from forecast + extend)
+  // For a more complete picture, use all forecast data as proxy
+  const fFiltered = filter === "ALL" ? forecastData : forecastData.filter((d) => d.pipeline === filter);
+  const weightedPipeline = fFiltered.reduce((s, r) => s + r.total_weighted, 0);
+
+  const { remaining, coverage, verdict } = computeCoverageGap(weightedPipeline, closedWonYtd, ANNUAL_GOAL_CLOSED_WON);
+
+  const verdictColor = verdict === "green" ? "text-gate-met" : verdict === "yellow" ? "text-pending" : "text-brand";
+  const verdictBg = verdict === "green" ? "bg-gate-met-light" : verdict === "yellow" ? "bg-pending-light" : "bg-brand-light";
+  const verdictText = coverage >= 3
+    ? "Closing problem — pipeline is deep enough. Work reports below."
+    : "Sourcing problem — pipeline too thin to hit goal. Prospect now.";
+
+  return (
+    <ReportCard title="Coverage Gap" subtitle="Do we have enough pipeline to hit the goal?">
+      <div className={`rounded-xl p-4 ${verdictBg} mb-3`}>
+        <p className={`text-sm font-semibold ${verdictColor}`}>{verdictText}</p>
+      </div>
+      <div className="grid grid-cols-3 gap-4 text-center">
+        <div>
+          <p className="text-[10px] text-label uppercase tracking-wider">Remaining</p>
+          <p className="text-lg font-semibold text-heading">{fmt$(Math.max(remaining, 0))}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-label uppercase tracking-wider">Weighted Pipeline</p>
+          <p className="text-lg font-semibold text-heading">{fmt$(weightedPipeline)}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-label uppercase tracking-wider">Coverage</p>
+          <p className={`text-lg font-semibold ${verdictColor}`}>{coverage.toFixed(1)}x</p>
+        </div>
+      </div>
+    </ReportCard>
+  );
+}
+
 // ── Main ──
 
 export default function ReportsPage() {
@@ -217,12 +505,14 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {/* My Worklist — placeholder */}
+      {/* My Worklist */}
       <div>
         <h2 className="text-xs font-semibold text-label uppercase tracking-wider mb-3">My Worklist</h2>
-        <div className="bg-card rounded-2xl p-8 text-center" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)" }}>
-          <p className="text-sm text-subtle">Closing This Month, Stale Deals, Bids Out Awaiting, Coverage Gap</p>
-          <p className="text-[10px] text-subtle mt-1">Coming next step</p>
+        <div className="space-y-4">
+          <CoverageGapCard filter={filter} />
+          <ClosingThisMonthTable filter={filter} />
+          <StaleLeaksTable filter={filter} />
+          <BidsOutTable filter={filter} />
         </div>
       </div>
     </div>
