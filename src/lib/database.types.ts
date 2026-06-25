@@ -91,6 +91,20 @@ export type Database = {
             referencedRelation: "opportunities"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "activities_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "v_closing_this_month"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activities_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "v_stale_leaks"
+            referencedColumns: ["id"]
+          },
         ]
       }
       bid_quotes: {
@@ -147,10 +161,31 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bid_quotes_gc_company_id_fkey"
+            columns: ["gc_company_id"]
+            isOneToOne: false
+            referencedRelation: "v_customer_concentration"
+            referencedColumns: ["company_id"]
+          },
+          {
             foreignKeyName: "bid_quotes_opportunity_id_fkey"
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_quotes_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "v_closing_this_month"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_quotes_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "v_stale_leaks"
             referencedColumns: ["id"]
           },
         ]
@@ -251,10 +286,31 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bids_gc_company_id_fkey"
+            columns: ["gc_company_id"]
+            isOneToOne: false
+            referencedRelation: "v_customer_concentration"
+            referencedColumns: ["company_id"]
+          },
+          {
             foreignKeyName: "bids_opportunity_id_fkey"
             columns: ["opportunity_id"]
             isOneToOne: true
             referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bids_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "v_closing_this_month"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bids_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "v_stale_leaks"
             referencedColumns: ["id"]
           },
         ]
@@ -363,6 +419,45 @@ export type Database = {
             referencedRelation: "v_company_list"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "company_notes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_customer_concentration"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
+      contact_notes: {
+        Row: {
+          author_id: string
+          body: string
+          contact_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          contact_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          contact_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_notes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
         ]
       }
       contacts: {
@@ -418,6 +513,13 @@ export type Database = {
             referencedRelation: "v_company_list"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_customer_concentration"
+            referencedColumns: ["company_id"]
+          },
         ]
       }
       facility_details: {
@@ -470,6 +572,20 @@ export type Database = {
             columns: ["opportunity_id"]
             isOneToOne: true
             referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facility_details_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "v_closing_this_month"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facility_details_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "v_stale_leaks"
             referencedColumns: ["id"]
           },
         ]
@@ -584,6 +700,13 @@ export type Database = {
             referencedRelation: "v_company_list"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "opportunities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_customer_concentration"
+            referencedColumns: ["company_id"]
+          },
         ]
       }
       user_pins: {
@@ -608,6 +731,20 @@ export type Database = {
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_pins_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "v_closing_this_month"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_pins_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "v_stale_leaks"
             referencedColumns: ["id"]
           },
         ]
@@ -635,11 +772,48 @@ export type Database = {
       }
     }
     Views: {
+      v_bid_out_awaiting: {
+        Row: {
+          company_name: string | null
+          days_until: number | null
+          decision_date: string | null
+          gc_name: string | null
+          opp_id: string | null
+          our_number: number | null
+          pipeline: Database["public"]["Enums"]["pipeline_type"] | null
+          project_name: string | null
+        }
+        Relationships: []
+      }
       v_bond_exposure: {
         Row: {
           bond_pct: number | null
           bonded_dollars: number | null
           total_dollars: number | null
+        }
+        Relationships: []
+      }
+      v_closed_won_vs_goal: {
+        Row: {
+          closed_won_ytd: number | null
+          pipeline: Database["public"]["Enums"]["pipeline_type"] | null
+          won_count: number | null
+        }
+        Relationships: []
+      }
+      v_closing_this_month: {
+        Row: {
+          amount: number | null
+          company_name: string | null
+          expected_close_date: string | null
+          id: string | null
+          name: string | null
+          next_step: string | null
+          next_step_date: string | null
+          pipeline: Database["public"]["Enums"]["pipeline_type"] | null
+          stage: string | null
+          weighted_amount: number | null
+          win_probability: number | null
         }
         Relationships: []
       }
@@ -707,6 +881,16 @@ export type Database = {
         }
         Relationships: []
       }
+      v_customer_concentration: {
+        Row: {
+          company_id: string | null
+          company_name: string | null
+          pipeline: Database["public"]["Enums"]["pipeline_type"] | null
+          won_count: number | null
+          won_dollars: number | null
+        }
+        Relationships: []
+      }
       v_outstanding_bid_dollars: {
         Row: {
           opp_count: number | null
@@ -719,6 +903,31 @@ export type Database = {
         Row: {
           avg_spread: number | null
           sample_size: number | null
+        }
+        Relationships: []
+      }
+      v_stale_leaks: {
+        Row: {
+          amount: number | null
+          company_name: string | null
+          id: string | null
+          last_activity_at: string | null
+          name: string | null
+          next_step_date: string | null
+          pipeline: Database["public"]["Enums"]["pipeline_type"] | null
+          stage: string | null
+        }
+        Relationships: []
+      }
+      v_weighted_forecast_90d: {
+        Row: {
+          close_month: string | null
+          committed_count: number | null
+          committed_weighted: number | null
+          pipeline: Database["public"]["Enums"]["pipeline_type"] | null
+          total_weighted: number | null
+          upside_count: number | null
+          upside_weighted: number | null
         }
         Relationships: []
       }
