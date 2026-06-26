@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useContact } from "../hooks/useContacts";
 import { useContactTimeline } from "../hooks/useContactTimeline";
-import { Phone, Mail, UserCheck, ExternalLink, MessageSquare, Clock } from "lucide-react";
+import { Phone, Mail, UserCheck, ExternalLink, MessageSquare, Clock, Archive, ArchiveRestore } from "lucide-react";
+import { supabase } from "../lib/supabase";
 
 const ROLE_LABELS: Record<string, string> = {
   PM: "PM", ESTIMATOR: "Estimator", SUPER: "Super", FM: "FM",
@@ -31,6 +32,16 @@ export default function ContactDetail() {
   const [noteInput, setNoteInput] = useState("");
   const [noteExpanded, setNoteExpanded] = useState(false);
   const [noteSaving, setNoteSaving] = useState(false);
+  const handleArchive = async () => {
+    if (!supabase || !id || !data) return;
+    const isArchived = !!data.contact.archived_at;
+    if (isArchived) {
+      await supabase.from("contacts").update({ archived_at: null }).eq("id", id);
+    } else {
+      await supabase.from("contacts").update({ archived_at: new Date().toISOString() }).eq("id", id);
+    }
+    window.location.reload();
+  };
 
   if (loading) {
     return <div className="flex items-center justify-center h-48"><div className="h-8 w-8 animate-spin rounded-full border-4 border-shell-border border-t-brand" /></div>;
@@ -64,13 +75,24 @@ export default function ContactDetail() {
 
       {/* Header */}
       <div className="bg-card rounded-2xl p-5" style={{ boxShadow: "var(--shadow-card)" }}>
-        <div className="flex items-center gap-2 mb-1">
-          <h1 className="text-lg font-semibold text-heading">{c.name}</h1>
-          {c.is_decision_maker && (
-            <span className="flex items-center gap-0.5 text-xs text-gate-met font-medium">
-              <UserCheck size={14} /> Decision Maker
-            </span>
-          )}
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-lg font-semibold text-heading">{c.name}</h1>
+            {c.is_decision_maker && (
+              <span className="flex items-center gap-0.5 text-xs text-gate-met font-medium">
+                <UserCheck size={14} /> Decision Maker
+              </span>
+            )}
+            {c.archived_at && (
+              <span className="rounded-full bg-pending-light text-pending px-2 py-0.5 text-[10px] font-medium">Archived</span>
+            )}
+          </div>
+          <button onClick={handleArchive}
+            className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 text-xs text-label border border-card-border rounded-lg hover:bg-gray-50 transition-colors"
+            title={c.archived_at ? "Unarchive" : "Archive"}>
+            {c.archived_at ? <ArchiveRestore size={12} /> : <Archive size={12} />}
+            {c.archived_at ? "Unarchive" : "Archive"}
+          </button>
         </div>
         <p className="text-sm text-heading mb-1">{c.title ?? ROLE_LABELS[c.role] ?? c.role}</p>
         <div className="flex items-center gap-2 mb-2">

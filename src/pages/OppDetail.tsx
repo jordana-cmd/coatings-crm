@@ -14,6 +14,7 @@ import QuickLogFAB from "../components/quick-log/QuickLogFAB";
 import type { Database } from "../lib/database.types";
 import { useBidQuotes } from "../hooks/useBidQuotes";
 import { supabase } from "../lib/supabase";
+import { Trash2 } from "lucide-react";
 
 type OppUpdate = Database["public"]["Tables"]["opportunities"]["Update"];
 
@@ -355,6 +356,8 @@ export default function OppDetail() {
     useAdvanceStage(id ?? "", refetch);
   const { activities, refetch: refetchActivities } = useActivities(id);
   const { isPinned, pin, unpin } = usePins();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const isPublicBid = opp?.pipeline === "PUBLIC_BID";
   const bidQuotes = useBidQuotes(isPublicBid ? id : undefined);
 
@@ -392,12 +395,19 @@ export default function OppDetail() {
       <div className="bg-card rounded-xl shadow-sm p-5">
         <div className="flex items-start justify-between gap-2">
           <h1 className="text-lg font-bold text-heading">{opp.name}</h1>
-          <button
-            onClick={() => isPinned(opp.id) ? unpin(opp.id) : pin(opp.id)}
-            className={`shrink-0 text-lg ${isPinned(opp.id) ? "text-pending" : "text-subtle"}`}
-            aria-label={isPinned(opp.id) ? "Unpin" : "Pin"}>
-            {isPinned(opp.id) ? "\u2605" : "\u2606"}
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => isPinned(opp.id) ? unpin(opp.id) : pin(opp.id)}
+              className={`text-lg ${isPinned(opp.id) ? "text-pending" : "text-subtle"}`}
+              aria-label={isPinned(opp.id) ? "Unpin" : "Pin"}>
+              {isPinned(opp.id) ? "\u2605" : "\u2606"}
+            </button>
+            <button onClick={() => setShowDeleteConfirm(true)}
+              className="p-1.5 text-subtle hover:text-brand rounded-lg hover:bg-brand-light transition-colors"
+              title="Delete deal">
+              <Trash2 size={14} />
+            </button>
+          </div>
         </div>
         <p className="text-sm text-label mt-0.5">
           {opp.company_name ?? "—"} &middot;{" "}
@@ -512,6 +522,32 @@ export default function OppDetail() {
       </div>
 
       <QuickLogFAB opportunityId={opp.id} companyId={opp.company_id} onLogged={refetchActivities} />
+
+      {/* Delete confirmation */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-card rounded-2xl p-6 w-full max-w-sm" style={{ boxShadow: "var(--shadow-card)" }}>
+            <h2 className="text-lg font-semibold text-heading mb-2">Delete this deal?</h2>
+            <p className="text-sm text-label mb-4">
+              This permanently removes the deal and all its activity, bids, and history. This cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 text-sm text-label hover:text-heading">Cancel</button>
+              <button onClick={async () => {
+                setDeleting(true);
+                if (supabase) {
+                  await supabase.rpc("delete_opportunity", { p_opp_id: opp.id });
+                }
+                navigate("/opportunities");
+              }} disabled={deleting}
+                className="px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg active:bg-brand-hover disabled:opacity-50">
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

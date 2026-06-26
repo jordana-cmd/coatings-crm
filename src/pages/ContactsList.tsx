@@ -15,7 +15,8 @@ const ROLE_LABELS: Record<ContactRole, string> = {
 const ROLE_OPTIONS: ContactRole[] = ["PM", "ESTIMATOR", "SUPER", "FM", "PURCHASING", "SPEC_WRITER"];
 
 export default function ContactsList() {
-  const { contacts, loading, createContact } = useContactList();
+  const [showArchived, setShowArchived] = useState(false);
+  const { contacts, loading, createContact } = useContactList(showArchived);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<ContactRole | "ALL">("ALL");
   const [showCreate, setShowCreate] = useState(false);
@@ -75,7 +76,14 @@ export default function ContactsList() {
                      focus:outline-none focus:ring-2 focus:ring-brand-ring focus:border-brand/40" />
       </div>
 
-      <p className="text-[10px] text-subtle mb-2">{filtered.length} of {contacts.length} contacts</p>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[10px] text-subtle">{filtered.length} of {contacts.length} contacts</p>
+        <label className="flex items-center gap-1.5 text-[10px] text-label cursor-pointer">
+          <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)}
+            className="rounded border-gray-300 text-brand focus:ring-brand h-3 w-3" />
+          Show archived
+        </label>
+      </div>
 
       {filtered.length === 0 ? (
         <div className="bg-card rounded-xl shadow-sm p-12 text-center">

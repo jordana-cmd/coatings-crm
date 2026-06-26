@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useCompany } from "../hooks/useCompany";
+import { supabase } from "../lib/supabase";
 import { useCompanyKpis } from "../hooks/useCompanyKpis";
 import { useCompanyNotes } from "../hooks/useCompanyNotes";
 import { STAGE_LABELS, PIPELINE_LABELS, type Pipeline } from "../lib/pipelines";
 import type { Database } from "../lib/database.types";
-import { Phone, Mail, ExternalLink, Link, UserCheck, Pencil, Users as UsersIcon, MapPin, Globe } from "lucide-react";
+import { Phone, Mail, ExternalLink, Link, UserCheck, Pencil, Users as UsersIcon, MapPin, Globe, Archive, ArchiveRestore } from "lucide-react";
 import KpiCard from "../components/dashboard/KpiCard";
 
 type ContactRole = Database["public"]["Enums"]["contact_role"];
@@ -86,6 +87,21 @@ export default function CompanyDetail() {
   const [noteInput, setNoteInput] = useState("");
   const [noteExpanded, setNoteExpanded] = useState(false);
   const [noteSaving, setNoteSaving] = useState(false);
+  const [archiveToast, setArchiveToast] = useState<string | null>(null);
+
+  const handleArchive = async () => {
+    if (!supabase || !id) return;
+    const isArchived = !!co?.archived_at;
+    if (isArchived) {
+      await supabase.from("companies").update({ archived_at: null }).eq("id", id);
+      setArchiveToast("Company unarchived");
+    } else {
+      await supabase.from("companies").update({ archived_at: new Date().toISOString() }).eq("id", id);
+      setArchiveToast("Company archived — hidden from active lists");
+    }
+    await refetch();
+    setTimeout(() => setArchiveToast(null), 4000);
+  };
 
   if (loading) {
     return <div className="flex items-center justify-center h-48"><div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-brand" /></div>;
@@ -148,10 +164,21 @@ export default function CompanyDetail() {
               {co.planroom_url && <MetaItem icon={ExternalLink} href={co.planroom_url}>Plan Room</MetaItem>}
             </div>
           </div>
-          <button onClick={() => setShowEdit(true)}
-            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-label border border-card-border rounded-lg hover:bg-gray-50 transition-colors">
-            <Pencil size={12} /> Edit
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {co.archived_at && (
+              <span className="rounded-full bg-pending-light text-pending px-2 py-0.5 text-[10px] font-medium">Archived</span>
+            )}
+            <button onClick={handleArchive}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-label border border-card-border rounded-lg hover:bg-gray-50 transition-colors"
+              title={co.archived_at ? "Unarchive" : "Archive"}>
+              {co.archived_at ? <ArchiveRestore size={12} /> : <Archive size={12} />}
+              {co.archived_at ? "Unarchive" : "Archive"}
+            </button>
+            <button onClick={() => setShowEdit(true)}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-label border border-card-border rounded-lg hover:bg-gray-50 transition-colors">
+              <Pencil size={12} /> Edit
+            </button>
+          </div>
         </div>
 
         {/* Key-value grid */}
@@ -291,6 +318,14 @@ export default function CompanyDetail() {
       </div>
 
       {/* Modals */}
+      {archiveToast && (
+        <div className="fixed bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-50 bg-card border border-pending/40 rounded-xl shadow-lg px-4 py-3 flex items-center gap-3">
+          <p className="text-sm text-heading">{archiveToast}</p>
+          {co.archived_at && (
+            <button onClick={handleArchive} className="text-xs text-brand font-medium whitespace-nowrap">Undo</button>
+          )}
+        </div>
+      )}
       {showEdit && <EditCompanyModal co={co} onSave={async (fields) => { await updateCompany(fields); await refetch(); setShowEdit(false); }} onClose={() => setShowEdit(false)} />}
       {showAddContact && <AddContactModal onAdd={addContact} onClose={() => setShowAddContact(false)} />}
     </div>
