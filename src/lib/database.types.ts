@@ -945,48 +945,72 @@ export type Database = {
       v_company_list: {
         Row: {
           address: string | null
+          address_line1: string | null
+          archived_at: string | null
           city: string | null
           created_at: string | null
+          email: string | null
           id: string | null
           jobs_out_for_bid: number | null
           last_activity_at: string | null
+          linkedin_url: string | null
           name: string | null
           notes: string | null
           opp_count: number | null
+          phone: string | null
+          planroom_url: string | null
           region: string | null
           state: string | null
+          status: string | null
           type: Database["public"]["Enums"]["company_type"] | null
           website: string | null
+          zip: string | null
         }
         Insert: {
           address?: string | null
+          address_line1?: string | null
+          archived_at?: string | null
           city?: string | null
           created_at?: string | null
+          email?: string | null
           id?: string | null
           jobs_out_for_bid?: never
           last_activity_at?: never
+          linkedin_url?: string | null
           name?: string | null
           notes?: string | null
           opp_count?: never
+          phone?: string | null
+          planroom_url?: string | null
           region?: string | null
           state?: string | null
+          status?: string | null
           type?: Database["public"]["Enums"]["company_type"] | null
           website?: string | null
+          zip?: string | null
         }
         Update: {
           address?: string | null
+          address_line1?: string | null
+          archived_at?: string | null
           city?: string | null
           created_at?: string | null
+          email?: string | null
           id?: string | null
           jobs_out_for_bid?: never
           last_activity_at?: never
+          linkedin_url?: string | null
           name?: string | null
           notes?: string | null
           opp_count?: never
+          phone?: string | null
+          planroom_url?: string | null
           region?: string | null
           state?: string | null
+          status?: string | null
           type?: Database["public"]["Enums"]["company_type"] | null
           website?: string | null
+          zip?: string | null
         }
         Relationships: []
       }
