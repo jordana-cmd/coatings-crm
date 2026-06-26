@@ -319,6 +319,7 @@ export type Database = {
         Row: {
           address: string
           address_line1: string | null
+          archived_at: string | null
           city: string | null
           created_at: string
           email: string | null
@@ -338,6 +339,7 @@ export type Database = {
         Insert: {
           address: string
           address_line1?: string | null
+          archived_at?: string | null
           city?: string | null
           created_at?: string
           email?: string | null
@@ -357,6 +359,7 @@ export type Database = {
         Update: {
           address?: string
           address_line1?: string | null
+          archived_at?: string | null
           city?: string | null
           created_at?: string
           email?: string | null
@@ -462,6 +465,7 @@ export type Database = {
       }
       contacts: {
         Row: {
+          archived_at: string | null
           city: string | null
           company_id: string
           created_at: string
@@ -476,6 +480,7 @@ export type Database = {
           title: string | null
         }
         Insert: {
+          archived_at?: string | null
           city?: string | null
           company_id: string
           created_at?: string
@@ -490,6 +495,7 @@ export type Database = {
           title?: string | null
         }
         Update: {
+          archived_at?: string | null
           city?: string | null
           company_id?: string
           created_at?: string
@@ -1064,6 +1070,7 @@ export type Database = {
         Returns: string
       }
       current_app_role: { Args: never; Returns: string }
+      delete_opportunity: { Args: { p_opp_id: string }; Returns: undefined }
       valid_stage_for_pipeline: {
         Args: { p: Database["public"]["Enums"]["pipeline_type"]; s: string }
         Returns: boolean

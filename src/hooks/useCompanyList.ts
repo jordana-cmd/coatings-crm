@@ -29,7 +29,7 @@ function buildLocation(city: string | null, state: string | null, region: string
   return "—";
 }
 
-export function useCompanyList() {
+export function useCompanyList(includeArchived = false) {
   const [companies, setCompanies] = useState<CompanyListItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,10 +37,9 @@ export function useCompanyList() {
     if (!supabase) return;
     setLoading(true);
 
-    const { data } = await supabase
-      .from("v_company_list")
-      .select("*")
-      .order("name");
+    let q = supabase.from("v_company_list").select("*").order("name");
+    if (!includeArchived) q = q.is("archived_at", null);
+    const { data } = await q;
 
     setCompanies(
       (data ?? []).map((c) => ({
@@ -80,5 +79,17 @@ export function useCompanyList() {
     return { error: null };
   };
 
-  return { companies, loading, createCompany, refetch: fetch };
+  const archiveCompany = async (id: string) => {
+    if (!supabase) return;
+    await supabase.from("companies").update({ archived_at: new Date().toISOString() }).eq("id", id);
+    await fetch();
+  };
+
+  const unarchiveCompany = async (id: string) => {
+    if (!supabase) return;
+    await supabase.from("companies").update({ archived_at: null }).eq("id", id);
+    await fetch();
+  };
+
+  return { companies, loading, createCompany, archiveCompany, unarchiveCompany, refetch: fetch };
 }

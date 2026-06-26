@@ -9,17 +9,16 @@ export interface ContactWithCompany extends ContactRow {
   company_name: string | null;
 }
 
-export function useContactList() {
+export function useContactList(includeArchived = false) {
   const [contacts, setContacts] = useState<ContactWithCompany[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
     if (!supabase) return;
     setLoading(true);
-    const { data } = await supabase
-      .from("contacts")
-      .select("*, companies(name)")
-      .order("name");
+    let q = supabase.from("contacts").select("*, companies(name)").order("name");
+    if (!includeArchived) q = q.is("archived_at", null);
+    const { data } = await q;
 
     setContacts(
       (data ?? []).map((c) => ({
@@ -47,7 +46,19 @@ export function useContactList() {
     return { error: null };
   };
 
-  return { contacts, loading, createContact, refetch: fetch };
+  const archiveContact = async (id: string) => {
+    if (!supabase) return;
+    await supabase.from("contacts").update({ archived_at: new Date().toISOString() }).eq("id", id);
+    await fetch();
+  };
+
+  const unarchiveContact = async (id: string) => {
+    if (!supabase) return;
+    await supabase.from("contacts").update({ archived_at: null }).eq("id", id);
+    await fetch();
+  };
+
+  return { contacts, loading, createContact, archiveContact, unarchiveContact, refetch: fetch };
 }
 
 export interface ContactDetail {

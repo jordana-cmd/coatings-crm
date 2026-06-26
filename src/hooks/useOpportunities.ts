@@ -59,7 +59,15 @@ export function useOpportunities() {
     return { error: null };
   };
 
-  return { opps, loading, error, create, refetch: fetchOpps };
+  const deleteOpportunity = async (id: string) => {
+    if (!supabase) return { error: "Not configured" };
+    const { error: err } = await supabase.rpc("delete_opportunity", { p_opp_id: id });
+    if (err) return { error: err.message };
+    await fetchOpps();
+    return { error: null };
+  };
+
+  return { opps, loading, error, create, deleteOpportunity, refetch: fetchOpps };
 }
 
 export function useCompanies() {
