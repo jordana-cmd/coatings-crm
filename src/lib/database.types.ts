@@ -462,6 +462,7 @@ export type Database = {
       }
       contacts: {
         Row: {
+          city: string | null
           company_id: string
           created_at: string
           email: string | null
@@ -471,9 +472,11 @@ export type Database = {
           name: string
           phone: string
           role: Database["public"]["Enums"]["contact_role"]
+          state: string | null
           title: string | null
         }
         Insert: {
+          city?: string | null
           company_id: string
           created_at?: string
           email?: string | null
@@ -483,9 +486,11 @@ export type Database = {
           name: string
           phone: string
           role: Database["public"]["Enums"]["contact_role"]
+          state?: string | null
           title?: string | null
         }
         Update: {
+          city?: string | null
           company_id?: string
           created_at?: string
           email?: string | null
@@ -495,6 +500,7 @@ export type Database = {
           name?: string
           phone?: string
           role?: Database["public"]["Enums"]["contact_role"]
+          state?: string | null
           title?: string | null
         }
         Relationships: [

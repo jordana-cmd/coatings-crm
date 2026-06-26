@@ -221,6 +221,11 @@ export default function CompanyDetail() {
                         <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-heading">{ROLE_LABELS[c.role]}</span>
                       </div>
                     </div>
+                    {(c.city || c.state) && (
+                      <p className="text-[10px] text-subtle mt-0.5">
+                        {c.city && c.state ? `${c.city}, ${c.state}` : c.city ?? c.state}
+                      </p>
+                    )}
                     <div className="flex items-center gap-3 mt-1.5">
                       <a href={`tel:${c.phone}`} className="flex items-center gap-1 text-xs text-brand"><Phone size={12} /> {c.phone}</a>
                       {c.email && <a href={`mailto:${c.email}`} className="flex items-center gap-1 text-xs text-brand"><Mail size={12} /> Email</a>}
