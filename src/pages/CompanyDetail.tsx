@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, useCallback, type FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useCompany } from "../hooks/useCompany";
 import { supabase } from "../lib/supabase";
@@ -6,7 +6,7 @@ import { useCompanyKpis } from "../hooks/useCompanyKpis";
 import { useCompanyNotes } from "../hooks/useCompanyNotes";
 import { STAGE_LABELS, PIPELINE_LABELS, type Pipeline } from "../lib/pipelines";
 import type { Database } from "../lib/database.types";
-import { Phone, Mail, ExternalLink, Link, UserCheck, Pencil, Users as UsersIcon, MapPin, Globe, Archive, ArchiveRestore } from "lucide-react";
+import { Phone, Mail, ExternalLink, Link, UserCheck, Pencil, Users as UsersIcon, MapPin, Globe, Archive, ArchiveRestore, Star } from "lucide-react";
 import KpiCard from "../components/dashboard/KpiCard";
 
 type ContactRole = Database["public"]["Enums"]["contact_role"];
@@ -88,6 +88,44 @@ export default function CompanyDetail() {
   const [noteExpanded, setNoteExpanded] = useState(false);
   const [noteSaving, setNoteSaving] = useState(false);
   const [archiveToast, setArchiveToast] = useState<string | null>(null);
+
+  // Last-contacted per contact (efficient: 2 queries for all contacts)
+  const [lastContactedMap, setLastContactedMap] = useState<Record<string, string>>({});
+  const contactIds = data?.contacts.map((c) => c.id) ?? [];
+  const fetchLastContacted = useCallback(async () => {
+    if (!supabase || contactIds.length === 0) return;
+    const map: Record<string, string> = {};
+    // Activities with contact_id
+    const { data: acts } = await supabase
+      .from("activities")
+      .select("contact_id, logged_at")
+      .in("contact_id", contactIds)
+      .order("logged_at", { ascending: false });
+    for (const a of acts ?? []) {
+      if (a.contact_id && (!map[a.contact_id] || a.logged_at > map[a.contact_id])) {
+        map[a.contact_id] = a.logged_at;
+      }
+    }
+    // Contact notes
+    const { data: notes2 } = await supabase
+      .from("contact_notes")
+      .select("contact_id, created_at")
+      .in("contact_id", contactIds)
+      .order("created_at", { ascending: false });
+    for (const n of notes2 ?? []) {
+      if (!map[n.contact_id] || n.created_at > map[n.contact_id]) {
+        map[n.contact_id] = n.created_at;
+      }
+    }
+    setLastContactedMap(map);
+  }, [contactIds.join(",")]);
+  useEffect(() => { fetchLastContacted(); }, [fetchLastContacted]);
+
+  const toggleFavorite = async (contactId: string, value: boolean) => {
+    if (!supabase) return;
+    await supabase.from("contacts").update({ is_favorite: value }).eq("id", contactId);
+    await refetch();
+  };
 
   const handleArchive = async () => {
     if (!supabase || !id) return;
@@ -239,26 +277,45 @@ export default function CompanyDetail() {
               </div>
             ) : (
               <div className="space-y-2">
-                {contacts.map((c) => (
-                  <div key={c.id} className="rounded-lg border border-card-border p-3">
-                    <div className="flex items-center justify-between">
-                      <button onClick={() => navigate(`/contacts/${c.id}`)} className="font-medium text-sm nav-link truncate text-left">{c.name}</button>
-                      <div className="flex items-center gap-1 shrink-0">
-                        {c.is_decision_maker && <span className="flex items-center gap-0.5 text-[10px] text-gate-met font-medium"><UserCheck size={12} /> DM</span>}
-                        <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-heading">{ROLE_LABELS[c.role]}</span>
+                {[...contacts].sort((a, b) => (b.is_favorite ? 1 : 0) - (a.is_favorite ? 1 : 0)).map((c) => {
+                  const lastTouch = lastContactedMap[c.id];
+                  const relTouch = lastTouch ? relTime(lastTouch) : null;
+                  return (
+                    <div key={c.id} className={`rounded-lg border p-3 ${c.is_favorite ? "border-brand/30 bg-brand-light/30" : "border-card-border"}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <button onClick={(e) => { e.stopPropagation(); toggleFavorite(c.id, !c.is_favorite); }}
+                            className={`shrink-0 ${c.is_favorite ? "text-brand" : "text-gray-300 hover:text-brand/50"}`}
+                            title={c.is_favorite ? "Unfavorite" : "Favorite"}>
+                            <Star size={14} fill={c.is_favorite ? "currentColor" : "none"} />
+                          </button>
+                          <button onClick={() => navigate(`/contacts/${c.id}`)} className="font-medium text-sm nav-link truncate text-left">{c.name}</button>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {c.is_decision_maker && <span className="flex items-center gap-0.5 text-[10px] text-gate-met font-medium"><UserCheck size={12} /> DM</span>}
+                          <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-heading">{ROLE_LABELS[c.role]}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {(c.city || c.state) && (
+                          <span className="text-[10px] text-subtle">
+                            {c.city && c.state ? `${c.city}, ${c.state}` : c.city ?? c.state}
+                          </span>
+                        )}
+                        {(c.city || c.state) && (relTouch || !lastTouch) && <span className="text-[10px] text-subtle">·</span>}
+                        {relTouch ? (
+                          <span className="text-[10px] text-gate-met">Last contacted {relTouch}</span>
+                        ) : (
+                          <span className="text-[10px] text-pending">Not yet contacted</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 mt-1.5">
+                        <a href={`tel:${c.phone}`} className="flex items-center gap-1 text-xs text-brand"><Phone size={12} /> {c.phone}</a>
+                        {c.email && <a href={`mailto:${c.email}`} className="flex items-center gap-1 text-xs text-brand"><Mail size={12} /> Email</a>}
                       </div>
                     </div>
-                    {(c.city || c.state) && (
-                      <p className="text-[10px] text-subtle mt-0.5">
-                        {c.city && c.state ? `${c.city}, ${c.state}` : c.city ?? c.state}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-3 mt-1.5">
-                      <a href={`tel:${c.phone}`} className="flex items-center gap-1 text-xs text-brand"><Phone size={12} /> {c.phone}</a>
-                      {c.email && <a href={`mailto:${c.email}`} className="flex items-center gap-1 text-xs text-brand"><Mail size={12} /> Email</a>}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
