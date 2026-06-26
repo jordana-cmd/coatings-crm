@@ -14,6 +14,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useDroppable } from "@dnd-kit/core";
 import { supabase } from "../lib/supabase";
+import { parseRpcBlockReason } from "../lib/gates/labels";
 import { useOpportunities } from "../hooks/useOpportunities";
 import {
   stagesFor,
@@ -188,14 +189,28 @@ function StageColumn({
 
 // ── Toast ──
 
-function Toast({ message, onClose }: { message: string; onClose: () => void }) {
+function Toast({ title, reasons, onClose }: { title: string; reasons: string[]; onClose: () => void }) {
+  // Auto-dismiss after 6s
+  useState(() => { const t = setTimeout(onClose, 6000); return () => clearTimeout(t); });
+
   return (
     <div className="fixed bottom-20 md:bottom-8 left-1/2 -translate-x-1/2 z-50
-                    bg-card border border-dq-border rounded-xl shadow-lg p-4 max-w-sm w-[90vw]">
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-sm text-dq">{message}</p>
+                    bg-card border border-pending/40 rounded-xl shadow-lg p-4 max-w-md w-[92vw]"
+         style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.12)" }}>
+      <div className="flex items-start justify-between gap-2 mb-1">
+        <p className="text-sm font-medium text-pending">{title}</p>
         <button onClick={onClose} className="text-subtle text-lg leading-none shrink-0">&times;</button>
       </div>
+      {reasons.length > 0 && (
+        <ul className="space-y-0.5">
+          {reasons.map((r, i) => (
+            <li key={i} className="text-xs text-label flex items-start gap-1.5">
+              <span className="text-pending mt-0.5 shrink-0">&#x25CB;</span>
+              {r}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -207,7 +222,7 @@ export default function OppsList() {
   const [pipeline, setPipeline] = useState<Pipeline>("PUBLIC_BID");
   const [showCreate, setShowCreate] = useState(false);
   const [activeOpp, setActiveOpp] = useState<Opp | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ title: string; reasons: string[] } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -239,7 +254,10 @@ export default function OppsList() {
       if (!opp || opp.stage === targetStage) return;
 
       if (!isValidDrop(pipeline, opp.stage, targetStage)) {
-        setToast(`Cannot move from ${STAGE_LABELS[opp.stage]} to ${STAGE_LABELS[targetStage]} — must advance one stage at a time`);
+        setToast({
+          title: `Can't move to ${STAGE_LABELS[targetStage] ?? targetStage}`,
+          reasons: ["Must advance one stage at a time — no skipping"],
+        });
         return;
       }
 
@@ -251,7 +269,11 @@ export default function OppsList() {
       });
 
       if (err) {
-        setToast(err.message);
+        const reasons = parseRpcBlockReason(err.message);
+        setToast({
+          title: `Can't advance to ${STAGE_LABELS[targetStage] ?? targetStage}`,
+          reasons,
+        });
       } else {
         await refetch();
       }
@@ -326,7 +348,7 @@ export default function OppsList() {
       </DndContext>
 
       {/* Toast for gate failures */}
-      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+      {toast && <Toast title={toast.title} reasons={toast.reasons} onClose={() => setToast(null)} />}
 
       {/* Create form */}
       {showCreate && (

@@ -1,7 +1,9 @@
 import { canAdvance } from "../../lib/gates/engine";
+import { friendlyLabel } from "../../lib/gates/labels";
 import { STAGE_LABELS, PUBLIC_BID_ACTIVE, GC_CHASE_ACTIVE, FACILITY_ACTIVE } from "../../lib/pipelines";
 import type { Pipeline } from "../../lib/pipelines";
 import type { OppWithBids } from "../../lib/gates/types";
+import { CheckCircle2, Circle } from "lucide-react";
 
 interface Props {
   opp: OppWithBids;
@@ -55,9 +57,24 @@ export default function GateChecklist({ opp, onAdvance, advancing, advanceError 
         {isSubmitted ? "Bid Result" : `Advance to ${nextLabel}`}
       </h3>
 
+      {/* Requirements checklist */}
+      {result.unmet.length > 0 && (
+        <ul className="space-y-2 mb-3">
+          {result.unmet.map((c) => (
+            <li key={c.field} className="flex items-start gap-2 text-sm">
+              <Circle size={16} className="text-pending mt-0.5 shrink-0" />
+              <span className="text-label">{friendlyLabel(c.field, c.label)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {result.allowed ? (
         <>
-          <p className="text-gate-met text-sm mb-3 font-medium">All conditions met</p>
+          <div className="flex items-center gap-2 mb-3">
+            <CheckCircle2 size={16} className="text-gate-met" />
+            <p className="text-gate-met text-sm font-medium">Ready to advance to {nextLabel}</p>
+          </div>
           {advanceError && <p className="text-brand text-sm mb-3">{advanceError}</p>}
           {isSubmitted ? (
             <div className="flex gap-2">
@@ -81,20 +98,10 @@ export default function GateChecklist({ opp, onAdvance, advancing, advanceError 
           )}
         </>
       ) : (
-        <>
-          <ul className="space-y-2 mb-3">
-            {result.unmet.map((c) => (
-              <li key={c.field} className="flex items-start gap-2 text-sm">
-                <span className="text-dq mt-0.5 shrink-0">&#x2717;</span>
-                <span className="text-label">{c.label}</span>
-              </li>
-            ))}
-          </ul>
-          <button disabled
-            className="w-full rounded-lg bg-gray-100 text-subtle py-3 text-sm font-medium cursor-not-allowed">
-            Resolve {result.unmet.length} condition{result.unmet.length > 1 ? "s" : ""} to advance
-          </button>
-        </>
+        <button disabled
+          className="w-full rounded-lg bg-gray-100 text-subtle py-3 text-sm font-medium cursor-not-allowed">
+          Resolve {result.unmet.length} condition{result.unmet.length > 1 ? "s" : ""} to advance
+        </button>
       )}
     </div>
   );
