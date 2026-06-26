@@ -58,7 +58,13 @@ export function useContactList(includeArchived = false) {
     await fetch();
   };
 
-  return { contacts, loading, createContact, archiveContact, unarchiveContact, refetch: fetch };
+  const toggleFavorite = async (id: string, value: boolean) => {
+    if (!supabase) return;
+    await supabase.from("contacts").update({ is_favorite: value }).eq("id", id);
+    await fetch();
+  };
+
+  return { contacts, loading, createContact, archiveContact, unarchiveContact, toggleFavorite, refetch: fetch };
 }
 
 export interface ContactDetail {

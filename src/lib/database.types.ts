@@ -472,6 +472,7 @@ export type Database = {
           email: string | null
           id: string
           is_decision_maker: boolean
+          is_favorite: boolean
           linkedin_url: string | null
           name: string
           phone: string
@@ -487,6 +488,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_decision_maker?: boolean
+          is_favorite?: boolean
           linkedin_url?: string | null
           name: string
           phone: string
@@ -502,6 +504,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_decision_maker?: boolean
+          is_favorite?: boolean
           linkedin_url?: string | null
           name?: string
           phone?: string
