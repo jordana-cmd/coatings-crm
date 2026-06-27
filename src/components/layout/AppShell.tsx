@@ -5,7 +5,6 @@ import {
   LayoutDashboard,
   FolderKanban,
   CalendarDays,
-  Sun,
   Building2,
   Users,
   BarChart3,
@@ -19,8 +18,7 @@ import {
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-  { label: "Today", path: "/", icon: Sun },
+  { label: "Dashboard", path: "/", icon: LayoutDashboard },
   { label: "Opportunities", path: "/opportunities", icon: FolderKanban },
   { label: "Companies", path: "/companies", icon: Building2 },
   { label: "Contacts", path: "/contacts", icon: Users },

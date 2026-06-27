@@ -1,7 +1,7 @@
 import { useState, useMemo, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCompanyList, type CompanyListItem } from "../hooks/useCompanyList";
-import { Search } from "lucide-react";
+import { Search, ClipboardCheck, FolderOpen } from "lucide-react";
 import type { Database } from "../lib/database.types";
 
 type CompanyType = Database["public"]["Enums"]["company_type"];
@@ -185,7 +185,23 @@ export default function CompaniesList() {
                   {sorted.map((c) => (
                     <tr key={c.id} onClick={() => navigate(`/companies/${c.id}`)}
                       className="hover:bg-gray-50 cursor-pointer">
-                      <td className="px-4 py-3 font-medium nav-link">{c.name}</td>
+                      <td className="px-4 py-3 font-medium nav-link">
+                        <span className="inline-flex items-center gap-1.5">
+                          {c.name}
+                          {c.on_bid_list && (
+                            <span title="On their bid list" className="inline-flex">
+                              <ClipboardCheck size={13} className="text-brand" />
+                            </span>
+                          )}
+                          {c.planroom_url && (
+                            <a href={c.planroom_url} target="_blank" rel="noopener noreferrer"
+                              title="Plan room linked" className="inline-flex hover:opacity-70"
+                              onClick={(e) => e.stopPropagation()}>
+                              <FolderOpen size={13} className="text-label" />
+                            </a>
+                          )}
+                        </span>
+                      </td>
                       <td className="px-4 py-3">
                         <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-heading">
                           {TYPE_LABELS[c.type]}
@@ -219,6 +235,18 @@ export default function CompaniesList() {
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <div className="flex items-center gap-2 min-w-0">
                       <p className="font-medium text-sm nav-link truncate">{c.name}</p>
+                      {c.on_bid_list && (
+                        <span title="On their bid list" className="shrink-0">
+                          <ClipboardCheck size={13} className="text-brand" />
+                        </span>
+                      )}
+                      {c.planroom_url && (
+                        <a href={c.planroom_url} target="_blank" rel="noopener noreferrer"
+                          title="Plan room linked" className="shrink-0"
+                          onClick={(e) => e.stopPropagation()}>
+                          <FolderOpen size={13} className="text-label" />
+                        </a>
+                      )}
                       <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-heading shrink-0">
                         {TYPE_LABELS[c.type]}
                       </span>

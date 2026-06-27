@@ -327,6 +327,7 @@ export type Database = {
           linkedin_url: string | null
           name: string
           notes: string | null
+          on_bid_list: boolean
           phone: string | null
           planroom_url: string | null
           region: string
@@ -347,6 +348,7 @@ export type Database = {
           linkedin_url?: string | null
           name: string
           notes?: string | null
+          on_bid_list?: boolean
           phone?: string | null
           planroom_url?: string | null
           region: string
@@ -367,6 +369,7 @@ export type Database = {
           linkedin_url?: string | null
           name?: string
           notes?: string | null
+          on_bid_list?: boolean
           phone?: string | null
           planroom_url?: string | null
           region?: string
@@ -965,6 +968,7 @@ export type Database = {
           linkedin_url: string | null
           name: string | null
           notes: string | null
+          on_bid_list: boolean | null
           opp_count: number | null
           phone: string | null
           planroom_url: string | null
@@ -988,6 +992,7 @@ export type Database = {
           linkedin_url?: string | null
           name?: string | null
           notes?: string | null
+          on_bid_list?: boolean | null
           opp_count?: never
           phone?: string | null
           planroom_url?: string | null
@@ -1011,6 +1016,7 @@ export type Database = {
           linkedin_url?: string | null
           name?: string | null
           notes?: string | null
+          on_bid_list?: boolean | null
           opp_count?: never
           phone?: string | null
           planroom_url?: string | null

@@ -4,7 +4,6 @@ import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 import AppShell from "./components/layout/AppShell";
 import DashboardPage from "./pages/DashboardPage";
-import DailyView from "./pages/DailyView";
 import OppsList from "./pages/OppsList";
 import OppDetail from "./pages/OppDetail";
 import BidCalendarPage from "./pages/BidCalendarPage";
@@ -22,7 +21,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route
-            path="/dashboard"
+            path="/"
             element={
               <ProtectedRoute>
                 <AppShell>
@@ -31,16 +30,8 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <AppShell>
-                  <DailyView />
-                </AppShell>
-              </ProtectedRoute>
-            }
-          />
+          {/* Redirect old /dashboard path so bookmarks don't break */}
+          <Route path="/dashboard" element={<Navigate to="/" replace />} />
           <Route
             path="/opportunities"
             element={

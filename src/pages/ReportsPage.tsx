@@ -22,6 +22,8 @@ import { useRevenueGoal } from "../hooks/useGoals";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from "recharts";
+import { useDashboard } from "../hooks/useDashboard";
+import { Shield } from "lucide-react";
 
 type FilterPipeline = Pipeline | "ALL";
 const FILTER_OPTIONS: { value: FilterPipeline; label: string }[] = [
@@ -528,6 +530,33 @@ function BidsOutTable({ filter }: { filter: FilterPipeline }) {
   );
 }
 
+// ── % Pipeline Bonded (moved from Dashboard — periodic metric) ──
+
+function BondExposureCard() {
+  const { data, loading } = useDashboard();
+  if (loading || !data) return <ReportCard title="% Pipeline Bonded" subtitle="Bond exposure on outstanding bids"><div className="h-16 flex items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-brand" /></div></ReportCard>;
+
+  const { bondExposure } = data;
+  const fmt = (n: number) => "$" + n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  const pct = bondExposure.totalDollars > 0 ? (bondExposure.pct * 100).toFixed(1) + "%" : "—";
+
+  return (
+    <ReportCard title="% Pipeline Bonded" subtitle="Bond exposure on outstanding bids">
+      <div className="flex items-center gap-3 py-2">
+        <Shield size={20} className="text-subtle shrink-0" />
+        <div>
+          <p className="text-xl font-semibold text-heading">{pct}</p>
+          {bondExposure.totalDollars > 0 ? (
+            <p className="text-[10px] text-subtle">{fmt(bondExposure.bondedDollars)} bonded of {fmt(bondExposure.totalDollars)}</p>
+          ) : (
+            <p className="text-[10px] text-subtle">No outstanding bids</p>
+          )}
+        </div>
+      </div>
+    </ReportCard>
+  );
+}
+
 // ── Report 8: Coverage Gap ──
 
 function CoverageGapCard({ filter, goalTarget }: { filter: FilterPipeline; goalTarget: number }) {
@@ -612,6 +641,7 @@ export default function ReportsPage() {
           <RevenueRealizationCard />
           <AvgJobSizeCard />
           <BidsThisWeekCard />
+          <BondExposureCard />
         </div>
       </div>
 

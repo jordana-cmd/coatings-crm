@@ -19,6 +19,8 @@ export interface CompanyListItem {
   jobs_out_for_bid: number;
   opp_count: number;
   location: string;
+  on_bid_list: boolean;
+  planroom_url: string | null;
 }
 
 function buildLocation(city: string | null, state: string | null, region: string): string {
@@ -57,6 +59,8 @@ export function useCompanyList(includeArchived = false) {
         jobs_out_for_bid: Number(c.jobs_out_for_bid ?? 0),
         opp_count: Number(c.opp_count ?? 0),
         location: buildLocation(c.city ?? null, c.state ?? null, c.region!),
+        on_bid_list: c.on_bid_list ?? false,
+        planroom_url: c.planroom_url ?? null,
       }))
     );
     setLoading(false);

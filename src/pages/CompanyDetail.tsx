@@ -393,7 +393,7 @@ export default function CompanyDetail() {
 
 function EditCompanyModal({ co, onSave, onClose }: {
   co: Database["public"]["Tables"]["companies"]["Row"];
-  onSave: (fields: Record<string, string | null>) => Promise<void>;
+  onSave: (fields: Record<string, string | boolean | null>) => Promise<void>;
   onClose: () => void;
 }) {
   const [f, setF] = useState({
@@ -401,6 +401,7 @@ function EditCompanyModal({ co, onSave, onClose }: {
     linkedin_url: co.linkedin_url ?? "", planroom_url: co.planroom_url ?? "",
     address_line1: co.address_line1 ?? co.address ?? "", city: co.city ?? "", state: co.state ?? "",
     zip: co.zip ?? "", status: co.status ?? "", type: co.type,
+    on_bid_list: co.on_bid_list ?? false,
   });
   const [saving, setSaving] = useState(false);
 
@@ -414,7 +415,7 @@ function EditCompanyModal({ co, onSave, onClose }: {
       name: f.name, phone: f.phone || null, email: f.email || null, website: f.website || null,
       linkedin_url: f.linkedin_url || null, planroom_url: f.planroom_url || null,
       address_line1: f.address_line1 || null, city: f.city || null, state: f.state || null,
-      zip: f.zip || null, status: f.status || null, type: f.type,
+      zip: f.zip || null, status: f.status || null, type: f.type, on_bid_list: f.on_bid_list,
     });
   };
 
@@ -449,6 +450,15 @@ function EditCompanyModal({ co, onSave, onClose }: {
             <input type="url" value={f.linkedin_url} onChange={(e) => set("linkedin_url", e.target.value)} className={cls} placeholder="https://linkedin.com/company/..." /></div>
           <div><label className="block text-[10px] text-label uppercase tracking-wider mb-0.5">Plan Room URL</label>
             <input type="url" value={f.planroom_url} onChange={(e) => set("planroom_url", e.target.value)} className={cls} placeholder="https://planroom..." /></div>
+          <label className="flex items-center gap-2.5 cursor-pointer py-1">
+            <input type="checkbox" checked={f.on_bid_list}
+              onChange={(e) => setF((p) => ({ ...p, on_bid_list: e.target.checked }))}
+              className="rounded border-gray-300 text-brand focus:ring-brand h-4 w-4" />
+            <div>
+              <span className="text-sm font-medium text-heading">On their bid list</span>
+              <p className="text-[10px] text-subtle">We're an approved/invited bidder for this company</p>
+            </div>
+          </label>
           <div><label className="block text-[10px] text-label uppercase tracking-wider mb-0.5">Address</label>
             <input value={f.address_line1} onChange={(e) => set("address_line1", e.target.value)} className={cls} placeholder="123 Main St" /></div>
           <div className="grid grid-cols-3 gap-3">
