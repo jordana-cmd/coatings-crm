@@ -1098,6 +1098,16 @@ export type Database = {
       }
       current_app_role: { Args: never; Returns: string }
       delete_opportunity: { Args: { p_opp_id: string }; Returns: undefined }
+      mark_complete: {
+        Args: {
+          p_completed_at?: string
+          p_final_value: number
+          p_notes?: string
+          p_opp_id: string
+        }
+        Returns: undefined
+      }
+      undo_complete: { Args: { p_opp_id: string }; Returns: undefined }
       valid_stage_for_pipeline: {
         Args: { p: Database["public"]["Enums"]["pipeline_type"]; s: string }
         Returns: boolean
