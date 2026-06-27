@@ -208,6 +208,148 @@ export function useBidOutAwaiting() {
   return { data, loading };
 }
 
+// ── Win Rate per Pipeline ──
+export interface WinRateRow {
+  pipeline: Pipeline;
+  won: number;
+  lost: number;
+  decided: number;
+  rate: number | null; // null when decided === 0
+}
+
+export function useWinRate() {
+  const [data, setData] = useState<WinRateRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase
+      .from("opportunities")
+      .select("pipeline, status")
+      .in("status", ["WON", "LOST"])
+      .then(({ data: rows }) => {
+        const map: Record<string, { won: number; lost: number }> = {};
+        for (const r of rows ?? []) {
+          const p = r.pipeline as string;
+          if (!map[p]) map[p] = { won: 0, lost: 0 };
+          if (r.status === "WON") map[p].won++;
+          else map[p].lost++;
+        }
+        const pipelines: Pipeline[] = ["PUBLIC_BID", "GC_CHASE", "FACILITY"];
+        setData(
+          pipelines.map((p) => {
+            const { won = 0, lost = 0 } = map[p] ?? {};
+            const decided = won + lost;
+            return { pipeline: p, won, lost, decided, rate: decided > 0 ? won / decided : null };
+          })
+        );
+        setLoading(false);
+      });
+  }, []);
+
+  return { data, loading };
+}
+
+// ── Dollars Won vs Dollars Installed ──
+export interface DollarsWonInstalled {
+  dollarsWon: number;
+  dollarsInstalled: number;
+  backlog: number;
+  wonCount: number;
+  installedCount: number;
+}
+
+export function useDollarsWonInstalled() {
+  const [data, setData] = useState<DollarsWonInstalled>({ dollarsWon: 0, dollarsInstalled: 0, backlog: 0, wonCount: 0, installedCount: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase
+      .from("opportunities")
+      .select("amount, completed_at, final_value, status")
+      .eq("status", "WON")
+      .then(({ data: rows }) => {
+        let dollarsWon = 0;
+        let dollarsInstalled = 0;
+        let wonCount = 0;
+        let installedCount = 0;
+        for (const r of rows ?? []) {
+          const amt = Number(r.amount ?? 0);
+          dollarsWon += amt;
+          wonCount++;
+          if (r.completed_at != null) {
+            dollarsInstalled += Number(r.final_value ?? amt);
+            installedCount++;
+          }
+        }
+        setData({ dollarsWon, dollarsInstalled, backlog: dollarsWon - dollarsInstalled, wonCount, installedCount });
+        setLoading(false);
+      });
+  }, []);
+
+  return { data, loading };
+}
+
+// ── Bids This Week ──
+export interface BidsThisWeek {
+  submitted: number;
+  target: number | null; // null = no goal set
+}
+
+function getWeekBounds(): { start: string; end: string } {
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun
+  const diffToMon = day === 0 ? -6 : 1 - day;
+  const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diffToMon);
+  const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 7);
+  return { start: mon.toISOString(), end: sun.toISOString() };
+}
+
+export function useBidsThisWeek() {
+  const [data, setData] = useState<BidsThisWeek>({ submitted: 0, target: null });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!supabase) return;
+    const { start, end } = getWeekBounds();
+
+    (async () => {
+      // Count bids submitted this week from stage history
+      const { data: histRows } = await supabase
+        .from("opportunity_stage_history")
+        .select("opportunity_id")
+        .eq("to_stage", "SUBMITTED")
+        .gte("changed_at", start)
+        .lt("changed_at", end);
+
+      const submitted = new Set((histRows ?? []).map((r) => r.opportunity_id)).size;
+
+      // Look for a BIDS_SUBMITTED goal to derive weekly pace
+      const { data: goalRows } = await supabase
+        .from("goals")
+        .select("target_value, period, period_year, period_quarter, period_month")
+        .eq("goal_type", "BIDS_SUBMITTED")
+        .is("owner_id", null)
+        .limit(1);
+
+      let target: number | null = null;
+      if (goalRows && goalRows.length > 0) {
+        const g = goalRows[0];
+        const tv = Number(g.target_value);
+        if (g.period === "ANNUAL") target = tv / 52;
+        else if (g.period === "QUARTERLY") target = tv / 13;
+        else if (g.period === "MONTHLY") target = tv / 4.33;
+      }
+
+      setData({ submitted, target });
+      setLoading(false);
+    })();
+  }, []);
+
+  return { data, loading };
+}
+
 // Report 8: Coverage gap (computed from other reports in UI)
 export function computeCoverageGap(
   weightedPipeline: number,

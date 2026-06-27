@@ -4,11 +4,13 @@ import { PIPELINE_LABELS, STAGE_LABELS, type Pipeline } from "../lib/pipelines";
 import {
   useForecast90d,
   useClosedWonVsGoal,
-  useCustomerConcentration,
   useClosingThisMonth,
   useStaleLeaks,
   useBidOutAwaiting,
   computeCoverageGap,
+  useWinRate,
+  useDollarsWonInstalled,
+  useBidsThisWeek,
   type ClosingRow,
   type StaleRow,
   type BidOutRow,
@@ -16,8 +18,7 @@ import {
 import { daysElapsedInYear, daysInYear } from "../config/constants";
 import { useRevenueGoal } from "../hooks/useGoals";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
-  PieChart, Pie,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from "recharts";
 
 type FilterPipeline = Pipeline | "ALL";
@@ -123,61 +124,135 @@ function ClosedWonGoalChart({ filter, goalTarget, goalYear }: { filter: FilterPi
   );
 }
 
-// ── Report 4: Customer Concentration ──
+// ── Card: Win Rate per Pipeline ──
 
-const COLORS = ["#db0000", "#ef4444", "#f87171", "#fca5a5", "#fecaca", "#fee2e2", "#fef2f2", "#6B7280", "#9CA3AF", "#D1D5DB"];
-
-function ConcentrationChart({ filter }: { filter: FilterPipeline }) {
-  const { data, loading } = useCustomerConcentration();
-  if (loading) return <div className="h-48 flex items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-brand" /></div>;
-
-  const filtered = filter === "ALL" ? data : data.filter((d) => d.pipeline === filter);
-
-  // Aggregate by company
-  const byCompany: Record<string, { name: string; dollars: number }> = {};
-  for (const r of filtered) {
-    if (!byCompany[r.company_id]) byCompany[r.company_id] = { name: r.company_name, dollars: 0 };
-    byCompany[r.company_id].dollars += r.won_dollars;
-  }
-  const sorted = Object.values(byCompany).sort((a, b) => b.dollars - a.dollars).slice(0, 10);
-  const totalWon = sorted.reduce((s, c) => s + c.dollars, 0);
-
-  if (sorted.length === 0) {
-    return <p className="text-sm text-subtle text-center py-8">No closed-won data yet</p>;
-  }
-
-  const pieData = sorted.map((c) => ({
-    name: c.name,
-    value: c.dollars,
-    pct: totalWon > 0 ? (c.dollars / totalWon * 100) : 0,
-  }));
+function WinRateCard() {
+  const { data, loading } = useWinRate();
+  if (loading) return <ReportCard title="Win Rate by Pipeline" subtitle="WON ÷ (WON + LOST) — decided opps only"><div className="h-20 flex items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-brand" /></div></ReportCard>;
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4">
-      <div className="w-full lg:w-48 shrink-0">
-        <ResponsiveContainer width="100%" height={180}>
-          <PieChart>
-            <Pie data={pieData} dataKey="value" cx="50%" cy="50%" outerRadius={70} innerRadius={40}
-              paddingAngle={2} stroke="none">
-              {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="flex-1 space-y-1.5">
-        {pieData.map((c, i) => (
-          <div key={c.name} className="flex items-center gap-2 text-xs">
-            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-            <span className="text-heading font-medium truncate flex-1">{c.name}</span>
-            <span className="text-label">{fmt$(c.value)}</span>
-            <span className={`font-semibold ${c.pct > 40 ? "text-brand" : "text-heading"}`}>
-              {c.pct.toFixed(0)}%
-            </span>
-            {c.pct > 40 && <span className="text-[9px] font-bold text-brand bg-brand-light px-1 py-0.5 rounded">RISK</span>}
+    <ReportCard title="Win Rate by Pipeline" subtitle="WON ÷ (WON + LOST) — decided opps only">
+      <div className="space-y-3">
+        {data.map((r) => (
+          <div key={r.pipeline} className="flex items-center justify-between">
+            <span className="text-xs text-label">{PIPELINE_LABELS[r.pipeline]}</span>
+            <div className="flex items-center gap-2">
+              {r.rate != null ? (
+                <>
+                  <span className="text-lg font-semibold text-heading">{(r.rate * 100).toFixed(0)}%</span>
+                  <span className="text-[10px] text-subtle">{r.won} of {r.decided}</span>
+                </>
+              ) : (
+                <span className="text-sm text-subtle">—</span>
+              )}
+            </div>
           </div>
         ))}
       </div>
-    </div>
+    </ReportCard>
+  );
+}
+
+// ── Card: Dollars Won vs Installed ──
+
+function DollarsWonInstalledCard() {
+  const { data, loading } = useDollarsWonInstalled();
+  if (loading) return <ReportCard title="Won vs Installed" subtitle="Landed vs finished — the backlog gap"><div className="h-20 flex items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-brand" /></div></ReportCard>;
+
+  const { dollarsWon, dollarsInstalled, backlog, wonCount, installedCount } = data;
+  const pct = dollarsWon > 0 ? dollarsInstalled / dollarsWon : 0;
+  const hasData = wonCount > 0;
+
+  return (
+    <ReportCard title="Won vs Installed" subtitle="Landed vs finished — the backlog gap">
+      {!hasData ? (
+        <p className="text-sm text-subtle text-center py-6">No won jobs yet</p>
+      ) : (
+        <div>
+          <div className="grid grid-cols-3 gap-4 text-center mb-3">
+            <div>
+              <p className="text-[10px] text-label uppercase tracking-wider">Won</p>
+              <p className="text-lg font-semibold text-heading">{fmt$(dollarsWon)}</p>
+              <p className="text-[10px] text-subtle">{wonCount} job{wonCount !== 1 ? "s" : ""}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-label uppercase tracking-wider">Installed</p>
+              <p className="text-lg font-semibold text-gate-met">{fmt$(dollarsInstalled)}</p>
+              <p className="text-[10px] text-subtle">{installedCount} job{installedCount !== 1 ? "s" : ""}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-label uppercase tracking-wider">Backlog</p>
+              <p className="text-lg font-semibold text-heading">{fmt$(backlog)}</p>
+            </div>
+          </div>
+          <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
+            <div className="absolute inset-y-0 left-0 bg-gate-met rounded-full transition-all" style={{ width: `${Math.min(pct * 100, 100)}%` }} />
+          </div>
+          <p className="text-[10px] text-subtle mt-1 text-right">{(pct * 100).toFixed(0)}% installed</p>
+        </div>
+      )}
+    </ReportCard>
+  );
+}
+
+// ── Card: Average Job Size ──
+
+function AvgJobSizeCard() {
+  const { data, loading } = useDollarsWonInstalled();
+  if (loading) return <ReportCard title="Average Job Size" subtitle="Mean $ per won job"><div className="h-16 flex items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-brand" /></div></ReportCard>;
+
+  const { dollarsWon, wonCount } = data;
+  const avg = wonCount > 0 ? dollarsWon / wonCount : null;
+
+  return (
+    <ReportCard title="Average Job Size" subtitle="Mean $ per won job">
+      <div className="text-center py-2">
+        {avg != null ? (
+          <>
+            <p className="text-2xl font-semibold text-heading">{fmt$(Math.round(avg))}</p>
+            <p className="text-xs text-subtle mt-1">across {wonCount} won job{wonCount !== 1 ? "s" : ""}</p>
+          </>
+        ) : (
+          <p className="text-sm text-subtle">—</p>
+        )}
+      </div>
+    </ReportCard>
+  );
+}
+
+// ── Card: Bids This Week ──
+
+function BidsThisWeekCard() {
+  const { data, loading } = useBidsThisWeek();
+  if (loading) return <ReportCard title="Bids This Week" subtitle="Submitted vs weekly pace target"><div className="h-16 flex items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-brand" /></div></ReportCard>;
+
+  const { submitted, target } = data;
+  const hasTarget = target != null && target > 0;
+  const weeklyTarget = hasTarget ? Math.ceil(target!) : 0;
+  const onPace = hasTarget && submitted >= weeklyTarget;
+
+  return (
+    <ReportCard title="Bids This Week" subtitle="Submitted vs weekly pace target">
+      <div className="text-center py-2">
+        {hasTarget ? (
+          <>
+            <div className="flex items-baseline justify-center gap-1.5">
+              <span className={`text-2xl font-semibold ${onPace ? "text-gate-met" : "text-brand"}`}>{submitted}</span>
+              <span className="text-sm text-subtle">/</span>
+              <span className="text-lg font-medium text-heading">{weeklyTarget}</span>
+            </div>
+            <p className={`text-xs font-medium mt-1 ${onPace ? "text-gate-met" : "text-brand"}`}>
+              {onPace ? "On pace" : "Behind pace"} — {submitted} submitted, {weeklyTarget} needed
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-2xl font-semibold text-heading">{submitted}</p>
+            <p className="text-xs text-subtle mt-1">submitted this week — set a bids goal to see target</p>
+          </>
+        )}
+      </div>
+    </ReportCard>
   );
 }
 
@@ -494,16 +569,10 @@ export default function ReportsPage() {
             <ForecastChart filter={filter} />
           </ReportCard>
 
-          <ReportCard title="Scope / Margin Mix" subtitle="Where is our margin best?">
-            <div className="text-center py-8">
-              <p className="text-sm text-subtle">Coming soon</p>
-              <p className="text-[10px] text-subtle mt-1">Requires scope tracking on opportunities</p>
-            </div>
-          </ReportCard>
-
-          <ReportCard title="Customer Concentration" subtitle="Are we too dependent on one customer?">
-            <ConcentrationChart filter={filter} />
-          </ReportCard>
+          <WinRateCard />
+          <DollarsWonInstalledCard />
+          <AvgJobSizeCard />
+          <BidsThisWeekCard />
         </div>
       </div>
 
