@@ -250,45 +250,117 @@ export function useWinRate() {
   return { data, loading };
 }
 
-// ── Dollars Won vs Dollars Installed ──
-export interface DollarsWonInstalled {
-  dollarsWon: number;
-  dollarsInstalled: number;
-  backlog: number;
-  wonCount: number;
-  installedCount: number;
+// ── Revenue Realization (Booked vs Delivered) ──
+export interface WonOppRow {
+  id: string;
+  amount: number;
+  winDate: string; // ISO date when opp was won
+  completedAt: string | null;
+  completedAmount: number; // final_value or amount fallback
 }
 
-export function useDollarsWonInstalled() {
-  const [data, setData] = useState<DollarsWonInstalled>({ dollarsWon: 0, dollarsInstalled: 0, backlog: 0, wonCount: 0, installedCount: 0 });
+export function useRevenueData() {
+  const [rows, setRows] = useState<WonOppRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!supabase) return;
-    supabase
-      .from("opportunities")
-      .select("amount, completed_at, final_value, status")
-      .eq("status", "WON")
-      .then(({ data: rows }) => {
-        let dollarsWon = 0;
-        let dollarsInstalled = 0;
-        let wonCount = 0;
-        let installedCount = 0;
-        for (const r of rows ?? []) {
-          const amt = Number(r.amount ?? 0);
-          dollarsWon += amt;
-          wonCount++;
-          if (r.completed_at != null) {
-            dollarsInstalled += Number(r.final_value ?? amt);
-            installedCount++;
-          }
+
+    (async () => {
+      // Fetch all WON opps
+      const { data: opps } = await supabase
+        .from("opportunities")
+        .select("id, amount, completed_at, final_value, stage_entered_at, updated_at, created_at")
+        .eq("status", "WON");
+
+      if (!opps || opps.length === 0) { setRows([]); setLoading(false); return; }
+
+      // Fetch win-date from stage history: AWARDED (PUBLIC_BID) or WON (GC_CHASE/FACILITY)
+      const oppIds = opps.map((o) => o.id);
+      const { data: histRows } = await supabase
+        .from("opportunity_stage_history")
+        .select("opportunity_id, to_stage, changed_at")
+        .in("opportunity_id", oppIds)
+        .in("to_stage", ["AWARDED", "WON"]);
+
+      // Map opp_id → earliest win-stage timestamp
+      const winDateMap: Record<string, string> = {};
+      for (const h of histRows ?? []) {
+        const existing = winDateMap[h.opportunity_id];
+        if (!existing || h.changed_at! < existing) {
+          winDateMap[h.opportunity_id] = h.changed_at!;
         }
-        setData({ dollarsWon, dollarsInstalled, backlog: dollarsWon - dollarsInstalled, wonCount, installedCount });
-        setLoading(false);
+      }
+
+      const result: WonOppRow[] = opps.map((o) => {
+        const amt = Number(o.amount ?? 0);
+        return {
+          id: o.id,
+          amount: amt,
+          winDate: winDateMap[o.id] ?? o.stage_entered_at ?? o.updated_at ?? o.created_at,
+          completedAt: o.completed_at ?? null,
+          completedAmount: Number(o.final_value ?? o.amount ?? 0),
+        };
       });
+
+      setRows(result);
+      setLoading(false);
+    })();
   }, []);
 
-  return { data, loading };
+  return { rows, loading };
+}
+
+export type RevPeriod = "MONTH" | "QUARTER" | "YEAR" | "ALL";
+
+export function getPeriodBounds(period: RevPeriod): { start: Date; end: Date } | null {
+  if (period === "ALL") return null;
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  if (period === "MONTH") return { start: new Date(y, m, 1), end: new Date(y, m + 1, 1) };
+  if (period === "QUARTER") {
+    const q = Math.floor(m / 3);
+    return { start: new Date(y, q * 3, 1), end: new Date(y, q * 3 + 3, 1) };
+  }
+  return { start: new Date(y, 0, 1), end: new Date(y + 1, 0, 1) };
+}
+
+export function computeRevRealization(rows: WonOppRow[], period: RevPeriod) {
+  const bounds = getPeriodBounds(period);
+
+  // Period-scoped Won (by win date)
+  let periodWon = 0, periodWonCount = 0;
+  for (const r of rows) {
+    if (bounds) {
+      const wd = new Date(r.winDate);
+      if (wd < bounds.start || wd >= bounds.end) continue;
+    }
+    periodWon += r.amount;
+    periodWonCount++;
+  }
+
+  // Period-scoped Installed (by completion date)
+  let periodInstalled = 0, periodInstalledCount = 0;
+  for (const r of rows) {
+    if (!r.completedAt) continue;
+    if (bounds) {
+      const cd = new Date(r.completedAt);
+      if (cd < bounds.start || cd >= bounds.end) continue;
+    }
+    periodInstalled += r.completedAmount;
+    periodInstalledCount++;
+  }
+
+  // All-time backlog (always full scope)
+  let allTimeWon = 0, allTimeInstalled = 0;
+  for (const r of rows) {
+    allTimeWon += r.amount;
+    if (r.completedAt) allTimeInstalled += r.completedAmount;
+  }
+  const backlog = allTimeWon - allTimeInstalled;
+
+  return { periodWon, periodWonCount, periodInstalled, periodInstalledCount, backlog, allTimeWon, allTimeInstalled };
 }
 
 // ── Bids This Week ──

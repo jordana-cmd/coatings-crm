@@ -475,6 +475,8 @@ export type Database = {
           is_favorite: boolean
           linkedin_url: string | null
           name: string
+          next_action: string | null
+          next_action_date: string | null
           phone: string
           role: Database["public"]["Enums"]["contact_role"]
           state: string | null
@@ -491,6 +493,8 @@ export type Database = {
           is_favorite?: boolean
           linkedin_url?: string | null
           name: string
+          next_action?: string | null
+          next_action_date?: string | null
           phone: string
           role: Database["public"]["Enums"]["contact_role"]
           state?: string | null
@@ -507,6 +511,8 @@ export type Database = {
           is_favorite?: boolean
           linkedin_url?: string | null
           name?: string
+          next_action?: string | null
+          next_action_date?: string | null
           phone?: string
           role?: Database["public"]["Enums"]["contact_role"]
           state?: string | null

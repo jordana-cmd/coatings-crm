@@ -9,8 +9,10 @@ import {
   useBidOutAwaiting,
   computeCoverageGap,
   useWinRate,
-  useDollarsWonInstalled,
+  useRevenueData,
+  computeRevRealization,
   useBidsThisWeek,
+  type RevPeriod,
   type ClosingRow,
   type StaleRow,
   type BidOutRow,
@@ -153,42 +155,77 @@ function WinRateCard() {
   );
 }
 
-// ── Card: Dollars Won vs Installed ──
+// ── Card: Revenue Realization (Booked vs Delivered) ──
 
-function DollarsWonInstalledCard() {
-  const { data, loading } = useDollarsWonInstalled();
-  if (loading) return <ReportCard title="Won vs Installed" subtitle="Landed vs finished — the backlog gap"><div className="h-20 flex items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-brand" /></div></ReportCard>;
+const REV_PERIODS: { value: RevPeriod; label: string; emptyLabel: string }[] = [
+  { value: "MONTH", label: "Month", emptyLabel: "this month" },
+  { value: "QUARTER", label: "Quarter", emptyLabel: "this quarter" },
+  { value: "YEAR", label: "Year", emptyLabel: "this year" },
+  { value: "ALL", label: "All-time", emptyLabel: "yet" },
+];
 
-  const { dollarsWon, dollarsInstalled, backlog, wonCount, installedCount } = data;
-  const pct = dollarsWon > 0 ? dollarsInstalled / dollarsWon : 0;
-  const hasData = wonCount > 0;
+function RevenueRealizationCard() {
+  const { rows, loading } = useRevenueData();
+  const [period, setPeriod] = useState<RevPeriod>("YEAR");
+
+  const r = computeRevRealization(rows, period);
+  const periodLabel = REV_PERIODS.find((p) => p.value === period)!;
+  const hasWon = r.periodWonCount > 0;
+  const hasInstalled = r.periodInstalledCount > 0;
+  const hasAnyData = hasWon || hasInstalled || r.backlog > 0;
+  const deliveredPct = r.periodWon > 0 ? r.periodInstalled / r.periodWon : 0;
+
+  const spinner = <div className="h-24 flex items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-brand" /></div>;
 
   return (
-    <ReportCard title="Won vs Installed" subtitle="Landed vs finished — the backlog gap">
-      {!hasData ? (
-        <p className="text-sm text-subtle text-center py-6">No won jobs yet</p>
+    <ReportCard title="Revenue Realization" subtitle="Booked vs delivered — what's been won and what's been installed">
+      {/* Period toggle */}
+      <div className="flex bg-gray-100 rounded-lg p-0.5 mb-4">
+        {REV_PERIODS.map((p) => (
+          <button key={p.value} onClick={() => setPeriod(p.value)}
+            className={`flex-1 px-2 py-1 text-[10px] font-medium rounded-md transition-colors
+              ${period === p.value ? "bg-brand text-white" : "text-label hover:text-heading"}`}>
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? spinner : !hasAnyData ? (
+        <p className="text-sm text-subtle text-center py-6">No bids won {periodLabel.emptyLabel}</p>
       ) : (
         <div>
-          <div className="grid grid-cols-3 gap-4 text-center mb-3">
+          {/* Won & Installed for the period */}
+          <div className="grid grid-cols-2 gap-4 text-center mb-3">
             <div>
-              <p className="text-[10px] text-label uppercase tracking-wider">Won</p>
-              <p className="text-lg font-semibold text-heading">{fmt$(dollarsWon)}</p>
-              <p className="text-[10px] text-subtle">{wonCount} job{wonCount !== 1 ? "s" : ""}</p>
+              <p className="text-[10px] text-label uppercase tracking-wider">Booked{period !== "ALL" ? ` ${periodLabel.label}` : ""}</p>
+              <p className="text-xl font-semibold text-heading">{hasWon ? fmt$(r.periodWon) : "—"}</p>
+              {hasWon && <p className="text-[10px] text-subtle">{r.periodWonCount} job{r.periodWonCount !== 1 ? "s" : ""} won</p>}
             </div>
             <div>
-              <p className="text-[10px] text-label uppercase tracking-wider">Installed</p>
-              <p className="text-lg font-semibold text-gate-met">{fmt$(dollarsInstalled)}</p>
-              <p className="text-[10px] text-subtle">{installedCount} job{installedCount !== 1 ? "s" : ""}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-label uppercase tracking-wider">Backlog</p>
-              <p className="text-lg font-semibold text-heading">{fmt$(backlog)}</p>
+              <p className="text-[10px] text-label uppercase tracking-wider">Delivered{period !== "ALL" ? ` ${periodLabel.label}` : ""}</p>
+              <p className="text-xl font-semibold text-gate-met">{hasInstalled ? fmt$(r.periodInstalled) : "—"}</p>
+              {hasInstalled && <p className="text-[10px] text-subtle">{r.periodInstalledCount} job{r.periodInstalledCount !== 1 ? "s" : ""} installed</p>}
             </div>
           </div>
-          <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
-            <div className="absolute inset-y-0 left-0 bg-gate-met rounded-full transition-all" style={{ width: `${Math.min(pct * 100, 100)}%` }} />
-          </div>
-          <p className="text-[10px] text-subtle mt-1 text-right">{(pct * 100).toFixed(0)}% installed</p>
+
+          {/* Progress bar (period-scoped) */}
+          {hasWon && (
+            <div className="mb-4">
+              <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
+                <div className="absolute inset-y-0 left-0 bg-gate-met rounded-full transition-all" style={{ width: `${Math.min(deliveredPct * 100, 100)}%` }} />
+              </div>
+              <p className="text-[10px] text-subtle mt-1 text-right">{(deliveredPct * 100).toFixed(0)}% delivered</p>
+            </div>
+          )}
+
+          {/* All-time backlog */}
+          {r.backlog > 0 && (
+            <div className="rounded-xl bg-gray-50 px-4 py-3 text-center">
+              <p className="text-[10px] text-label uppercase tracking-wider">Still to install</p>
+              <p className="text-lg font-semibold text-heading">{fmt$(r.backlog)}</p>
+              <p className="text-[10px] text-subtle">secured revenue not yet delivered</p>
+            </div>
+          )}
         </div>
       )}
     </ReportCard>
@@ -198,11 +235,13 @@ function DollarsWonInstalledCard() {
 // ── Card: Average Job Size ──
 
 function AvgJobSizeCard() {
-  const { data, loading } = useDollarsWonInstalled();
-  if (loading) return <ReportCard title="Average Job Size" subtitle="Mean $ per won job"><div className="h-16 flex items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-brand" /></div></ReportCard>;
+  const { rows, loading } = useRevenueData();
 
-  const { dollarsWon, wonCount } = data;
-  const avg = wonCount > 0 ? dollarsWon / wonCount : null;
+  const allTimeWon = rows.reduce((s, r) => s + r.amount, 0);
+  const wonCount = rows.length;
+  const avg = wonCount > 0 ? allTimeWon / wonCount : null;
+
+  if (loading) return <ReportCard title="Average Job Size" subtitle="Mean $ per won job"><div className="h-16 flex items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-brand" /></div></ReportCard>;
 
   return (
     <ReportCard title="Average Job Size" subtitle="Mean $ per won job">
@@ -570,7 +609,7 @@ export default function ReportsPage() {
           </ReportCard>
 
           <WinRateCard />
-          <DollarsWonInstalledCard />
+          <RevenueRealizationCard />
           <AvgJobSizeCard />
           <BidsThisWeekCard />
         </div>
