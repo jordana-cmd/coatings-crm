@@ -74,6 +74,7 @@ function makeContact(overrides: Partial<ContactRow> = {}): ContactRow {
     title: null, city: null, state: null, archived_at: null,
     created_at: new Date().toISOString(),
     next_action: null, next_action_date: null,
+    last_contacted_at: null,
     ...overrides,
   };
 }

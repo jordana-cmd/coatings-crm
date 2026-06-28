@@ -90,44 +90,18 @@ async function fetchAllTouchItems(): Promise<TouchListItem[]> {
     }
   }
 
-  // ── Fetch favorited contacts ──
+  // ── Fetch favorited contacts (last_contacted_at is stored on the row) ──
   const { data: contacts } = await supabase
     .from("contacts")
     .select("*, companies(name)")
     .eq("is_favorite", true)
     .is("archived_at", null);
 
-  const contactIds = (contacts ?? []).map((c) => c.id);
-  const contactLastMap: Record<string, string> = {};
-  if (contactIds.length > 0) {
-    const { data: cActivities } = await supabase
-      .from("activities")
-      .select("contact_id, logged_at")
-      .in("contact_id", contactIds)
-      .order("logged_at", { ascending: false });
-    for (const a of cActivities ?? []) {
-      if (a.contact_id && !contactLastMap[a.contact_id]) {
-        contactLastMap[a.contact_id] = a.logged_at;
-      }
-    }
-    const { data: cNotes } = await supabase
-      .from("contact_notes")
-      .select("contact_id, created_at")
-      .in("contact_id", contactIds)
-      .order("created_at", { ascending: false });
-    for (const n of cNotes ?? []) {
-      const existing = contactLastMap[n.contact_id];
-      if (!existing || n.created_at > existing) {
-        contactLastMap[n.contact_id] = n.created_at;
-      }
-    }
-  }
-
   const contactItems: TouchListItem[] = [];
   for (const c of contacts ?? []) {
     const contactForCadence: ContactForCadence = {
       ...c,
-      lastContactedAt: contactLastMap[c.id] ?? null,
+      lastContactedAt: c.last_contacted_at ?? null,
     };
     const nextAction = resolveContactNextAction(contactForCadence);
     if (nextAction) {
@@ -138,7 +112,7 @@ async function fetchAllTouchItems(): Promise<TouchListItem[]> {
         companyName: (c.companies as { name: string } | null)?.name ?? null,
         pipeline: null,
         stage: null,
-        lastContactedAt: contactLastMap[c.id] ?? null,
+        lastContactedAt: c.last_contacted_at ?? null,
         nextAction,
       });
     }

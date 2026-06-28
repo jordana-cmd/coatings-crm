@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useCompany } from "../hooks/useCompany";
 import { supabase } from "../lib/supabase";
@@ -89,37 +89,11 @@ export default function CompanyDetail() {
   const [noteSaving, setNoteSaving] = useState(false);
   const [archiveToast, setArchiveToast] = useState<string | null>(null);
 
-  // Last-contacted per contact (efficient: 2 queries for all contacts)
-  const [lastContactedMap, setLastContactedMap] = useState<Record<string, string>>({});
-  const contactIds = data?.contacts.map((c) => c.id) ?? [];
-  const fetchLastContacted = useCallback(async () => {
-    if (!supabase || contactIds.length === 0) return;
-    const map: Record<string, string> = {};
-    // Activities with contact_id
-    const { data: acts } = await supabase
-      .from("activities")
-      .select("contact_id, logged_at")
-      .in("contact_id", contactIds)
-      .order("logged_at", { ascending: false });
-    for (const a of acts ?? []) {
-      if (a.contact_id && (!map[a.contact_id] || a.logged_at > map[a.contact_id])) {
-        map[a.contact_id] = a.logged_at;
-      }
-    }
-    // Contact notes
-    const { data: notes2 } = await supabase
-      .from("contact_notes")
-      .select("contact_id, created_at")
-      .in("contact_id", contactIds)
-      .order("created_at", { ascending: false });
-    for (const n of notes2 ?? []) {
-      if (!map[n.contact_id] || n.created_at > map[n.contact_id]) {
-        map[n.contact_id] = n.created_at;
-      }
-    }
-    setLastContactedMap(map);
-  }, [contactIds.join(",")]);
-  useEffect(() => { fetchLastContacted(); }, [fetchLastContacted]);
+  // Last-contacted per contact: read from stored last_contacted_at column (kept current by DB triggers)
+  const lastContactedMap: Record<string, string> = {};
+  for (const c of data?.contacts ?? []) {
+    if (c.last_contacted_at) lastContactedMap[c.id] = c.last_contacted_at;
+  }
 
   const toggleFavorite = async (contactId: string, value: boolean) => {
     if (!supabase) return;

@@ -476,6 +476,7 @@ export type Database = {
           id: string
           is_decision_maker: boolean
           is_favorite: boolean
+          last_contacted_at: string | null
           linkedin_url: string | null
           name: string
           next_action: string | null
@@ -494,6 +495,7 @@ export type Database = {
           id?: string
           is_decision_maker?: boolean
           is_favorite?: boolean
+          last_contacted_at?: string | null
           linkedin_url?: string | null
           name: string
           next_action?: string | null
@@ -512,6 +514,7 @@ export type Database = {
           id?: string
           is_decision_maker?: boolean
           is_favorite?: boolean
+          last_contacted_at?: string | null
           linkedin_url?: string | null
           name?: string
           next_action?: string | null
