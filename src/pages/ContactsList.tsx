@@ -1,9 +1,9 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { useContactList, type ContactFilters } from "../hooks/useContacts";
+import { useContactList, fetchAllFilteredContacts, type ContactFilters, type LastContactedFilter, type ContactWithCompany } from "../hooks/useContacts";
 import Pagination, { type PageSize } from "../components/ui/Pagination";
 import { supabase } from "../lib/supabase";
-import { Search, Phone, Mail, UserCheck, ExternalLink } from "lucide-react";
+import { Search, Phone, Mail, UserCheck, ExternalLink, Download } from "lucide-react";
 import type { Database } from "../lib/database.types";
 
 type ContactRole = Database["public"]["Enums"]["contact_role"];
@@ -15,32 +15,158 @@ const ROLE_LABELS: Record<ContactRole, string> = {
 };
 const ROLE_OPTIONS: ContactRole[] = ["PM", "ESTIMATOR", "SUPER", "FM", "PURCHASING", "SPEC_WRITER"];
 
+const LAST_CONTACTED_OPTIONS: { value: LastContactedFilter; label: string }[] = [
+  { value: "ANY", label: "Any" },
+  { value: "7D", label: "Within 7 days" },
+  { value: "30D", label: "Within 30 days" },
+  { value: "90PLUS", label: "90+ days ago" },
+  { value: "NEVER", label: "Never contacted" },
+];
+
+// ── CSV helpers ──
+
+function csvEscape(val: string): string {
+  if (val.includes(",") || val.includes('"') || val.includes("\n")) {
+    return '"' + val.replace(/"/g, '""') + '"';
+  }
+  return val;
+}
+
+interface ExportColumn {
+  key: string;
+  label: string;
+  getter: (c: ContactWithCompany) => string;
+}
+
+const EXPORT_COLUMNS: ExportColumn[] = [
+  { key: "first_name", label: "First Name", getter: (c) => c.name.split(" ")[0] ?? "" },
+  { key: "last_name", label: "Last Name", getter: (c) => c.name.split(" ").slice(1).join(" ") ?? "" },
+  { key: "title", label: "Title", getter: (c) => c.title ?? "" },
+  { key: "role", label: "Role", getter: (c) => c.role },
+  { key: "company", label: "Company", getter: (c) => c.company_name ?? "" },
+  { key: "phone", label: "Phone", getter: (c) => c.phone ?? "" },
+  { key: "email", label: "Email", getter: (c) => c.email ?? "" },
+  { key: "city", label: "City", getter: (c) => c.city ?? "" },
+  { key: "state", label: "State", getter: (c) => c.state ?? "" },
+  { key: "linkedin_url", label: "LinkedIn URL", getter: (c) => c.linkedin_url ?? "" },
+  { key: "decision_maker", label: "Decision Maker", getter: (c) => c.is_decision_maker ? "Yes" : "No" },
+  { key: "favorite", label: "Favorite", getter: (c) => c.is_favorite ? "Yes" : "No" },
+  { key: "last_contacted", label: "Last Contacted", getter: (c) => c.last_contacted_at ? new Date(c.last_contacted_at).toLocaleDateString() : "" },
+];
+
+function generateCsv(rows: ContactWithCompany[], columns: ExportColumn[]): string {
+  const header = columns.map((c) => csvEscape(c.label)).join(",");
+  const body = rows.map((r) => columns.map((c) => csvEscape(c.getter(r))).join(",")).join("\n");
+  return header + "\n" + body;
+}
+
+function downloadCsv(csv: string, filename: string) {
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Export Modal ──
+
+function ExportModal({ totalCount, filters, onClose }: {
+  totalCount: number; filters: ContactFilters; onClose: () => void;
+}) {
+  const [selected, setSelected] = useState<Set<string>>(new Set(EXPORT_COLUMNS.map((c) => c.key)));
+  const [exporting, setExporting] = useState(false);
+
+  const toggle = (key: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    const rows = await fetchAllFilteredContacts(filters);
+    const cols = EXPORT_COLUMNS.filter((c) => selected.has(c.key));
+    const csv = generateCsv(rows, cols);
+    const date = new Date().toISOString().slice(0, 10);
+    downloadCsv(csv, `contacts_export_${date}.csv`);
+    setExporting(false);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
+      <div className="w-full max-w-md bg-card rounded-t-2xl sm:rounded-2xl p-5 max-h-[85svh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-heading">Export Contacts</h2>
+          <button onClick={onClose} className="text-subtle text-2xl leading-none">&times;</button>
+        </div>
+        <p className="text-xs text-label mb-3">
+          Export <span className="font-semibold text-heading">{totalCount}</span> contacts matching current filters
+        </p>
+        <div className="space-y-1.5 mb-4">
+          {EXPORT_COLUMNS.map((col) => (
+            <label key={col.key} className="flex items-center gap-2.5 cursor-pointer py-0.5">
+              <input type="checkbox" checked={selected.has(col.key)}
+                onChange={() => toggle(col.key)}
+                className="rounded border-gray-300 text-brand focus:ring-brand h-3.5 w-3.5" />
+              <span className="text-sm text-heading">{col.label}</span>
+            </label>
+          ))}
+        </div>
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-label hover:text-heading">Cancel</button>
+          <button onClick={handleExport} disabled={exporting || selected.size === 0}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg active:bg-brand-hover disabled:opacity-50">
+            <Download size={14} />
+            {exporting ? "Exporting..." : `Export ${totalCount} contacts`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main ──
+
 export default function ContactsList() {
   const [roleFilter, setRoleFilter] = useState<ContactRole | "ALL">("ALL");
   const [search, setSearch] = useState("");
   const [showArchived, setShowArchived] = useState(false);
+  const [lastContactedFilter, setLastContactedFilter] = useState<LastContactedFilter>("ANY");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState<PageSize>(50);
   const [showCreate, setShowCreate] = useState(false);
+  const [showExport, setShowExport] = useState(false);
   const navigate = useNavigate();
 
-  const filters: ContactFilters = { role: roleFilter, search, includeArchived: showArchived };
+  const filters: ContactFilters = { role: roleFilter, search, includeArchived: showArchived, lastContacted: lastContactedFilter };
   const { contacts, totalCount, loading, createContact } = useContactList(filters, page, pageSize);
 
   // Reset to page 0 when filters change
   const setRoleAndReset = (v: ContactRole | "ALL") => { setRoleFilter(v); setPage(0); };
   const setSearchAndReset = (v: string) => { setSearch(v); setPage(0); };
   const setArchivedAndReset = (v: boolean) => { setShowArchived(v); setPage(0); };
+  const setLastContactedAndReset = (v: LastContactedFilter) => { setLastContactedFilter(v); setPage(0); };
   const setPageSizeAndReset = (s: PageSize) => { setPageSize(s); setPage(0); };
 
   return (
     <div className="pb-16 md:pb-6">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-semibold text-heading">Contacts</h1>
-        <button onClick={() => setShowCreate(true)}
-          className="rounded-lg bg-brand text-white px-4 py-2 text-sm font-medium active:bg-brand-hover">
-          + New
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowExport(true)}
+            className="flex items-center gap-1 rounded-lg border border-card-border px-3 py-2 text-sm font-medium text-label hover:text-heading active:bg-gray-50">
+            <Download size={14} /> Export
+          </button>
+          <button onClick={() => setShowCreate(true)}
+            className="rounded-lg bg-brand text-white px-4 py-2 text-sm font-medium active:bg-brand-hover">
+            + New
+          </button>
+        </div>
       </div>
 
       {/* Role filter pills */}
@@ -59,12 +185,22 @@ export default function ContactsList() {
         ))}
       </div>
 
-      <div className="relative mb-3">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-label" />
-        <input type="text" placeholder="Search name, title, or company..." value={search}
-          onChange={(e) => setSearchAndReset(e.target.value)}
-          className="w-full bg-card rounded-lg border border-card-border pl-9 pr-3 py-2.5 text-sm text-heading
-                     focus:outline-none focus:ring-2 focus:ring-brand-ring focus:border-brand/40" />
+      {/* Search + Last Contacted filter */}
+      <div className="flex gap-2 mb-3">
+        <div className="relative flex-1">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-label" />
+          <input type="text" placeholder="Search name, title, or company..." value={search}
+            onChange={(e) => setSearchAndReset(e.target.value)}
+            className="w-full bg-card rounded-lg border border-card-border pl-9 pr-3 py-2.5 text-sm text-heading
+                       focus:outline-none focus:ring-2 focus:ring-brand-ring focus:border-brand/40" />
+        </div>
+        <select value={lastContactedFilter} onChange={(e) => setLastContactedAndReset(e.target.value as LastContactedFilter)}
+          className="bg-card rounded-lg border border-card-border px-3 py-2.5 text-sm text-heading
+                     focus:outline-none focus:ring-2 focus:ring-brand-ring focus:border-brand/40 shrink-0">
+          {LAST_CONTACTED_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
       </div>
 
       <div className="flex items-center justify-between mb-2">
@@ -104,9 +240,11 @@ export default function ContactsList() {
                   </p>
                 </button>
                 <div className="flex items-center gap-1 shrink-0">
-                  <a href={`tel:${c.phone}`} className="p-2 text-brand rounded-lg hover:bg-brand-light">
-                    <Phone size={16} />
-                  </a>
+                  {c.phone && (
+                    <a href={`tel:${c.phone}`} className="p-2 text-brand rounded-lg hover:bg-brand-light">
+                      <Phone size={16} />
+                    </a>
+                  )}
                   {c.email && (
                     <a href={`mailto:${c.email}`} className="p-2 text-brand rounded-lg hover:bg-brand-light">
                       <Mail size={16} />
@@ -132,6 +270,7 @@ export default function ContactsList() {
       )}
 
       {showCreate && <CreateContactModal onCreate={createContact} onClose={() => setShowCreate(false)} />}
+      {showExport && <ExportModal totalCount={totalCount} filters={filters} onClose={() => setShowExport(false)} />}
     </div>
   );
 }

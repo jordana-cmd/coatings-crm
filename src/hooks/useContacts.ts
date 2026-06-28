@@ -9,10 +9,13 @@ export interface ContactWithCompany extends ContactRow {
   company_name: string | null;
 }
 
+export type LastContactedFilter = "ANY" | "7D" | "30D" | "90PLUS" | "NEVER";
+
 export interface ContactFilters {
   role: ContactRole | "ALL";
   search: string;
   includeArchived: boolean;
+  lastContacted: LastContactedFilter;
 }
 
 function mapContactRow(c: Record<string, unknown>): ContactWithCompany {
@@ -46,6 +49,20 @@ async function fetchContacts(filters: ContactFilters, rangeFrom?: number, rangeT
     }
   }
 
+  // Last-contacted filter
+  if (filters.lastContacted !== "ANY") {
+    const now = new Date();
+    if (filters.lastContacted === "NEVER") {
+      q = q.is("last_contacted_at", null);
+    } else if (filters.lastContacted === "7D") {
+      q = q.gte("last_contacted_at", new Date(now.getTime() - 7 * 86400000).toISOString());
+    } else if (filters.lastContacted === "30D") {
+      q = q.gte("last_contacted_at", new Date(now.getTime() - 30 * 86400000).toISOString());
+    } else if (filters.lastContacted === "90PLUS") {
+      q = q.lte("last_contacted_at", new Date(now.getTime() - 90 * 86400000).toISOString());
+    }
+  }
+
   if (rangeFrom != null && rangeTo != null) q = q.range(rangeFrom, rangeTo);
 
   return q;
@@ -64,7 +81,7 @@ export function useContactList(filters: ContactFilters, page: number, pageSize: 
     setContacts((data ?? []).map(mapContactRow));
     setTotalCount(count ?? 0);
     setLoading(false);
-  }, [filters.role, filters.search, filters.includeArchived, page, pageSize]);
+  }, [filters.role, filters.search, filters.includeArchived, filters.lastContacted, page, pageSize]);
 
   useEffect(() => { fetch(); }, [fetch]);
 
