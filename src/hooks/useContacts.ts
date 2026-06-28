@@ -143,7 +143,13 @@ export function useContact(id: string | undefined) {
 
   useEffect(() => { fetch(); }, [fetch]);
 
-  return { data, loading, error, refetch: fetch };
+  const updateContact = async (fields: Partial<ContactRow>) => {
+    if (!supabase || !id) return;
+    await supabase.from("contacts").update(fields).eq("id", id);
+    await fetch();
+  };
+
+  return { data, loading, error, refetch: fetch, updateContact };
 }
 
 export interface ContactActivity {

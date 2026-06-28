@@ -1,14 +1,26 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useContact } from "../hooks/useContacts";
 import { useContactTimeline } from "../hooks/useContactTimeline";
-import { Phone, Mail, UserCheck, ExternalLink, MessageSquare, Clock, Archive, ArchiveRestore } from "lucide-react";
+import { Phone, Mail, UserCheck, ExternalLink, MessageSquare, Clock, Archive, ArchiveRestore, Pencil } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import type { Database } from "../lib/database.types";
+
+type ContactRole = Database["public"]["Enums"]["contact_role"];
 
 const ROLE_LABELS: Record<string, string> = {
   PM: "PM", ESTIMATOR: "Estimator", SUPER: "Super", FM: "FM",
   PURCHASING: "Purchasing", SPEC_WRITER: "Spec Writer",
 };
+
+const ROLE_OPTIONS: { value: ContactRole; label: string }[] = [
+  { value: "PM", label: "PM" },
+  { value: "ESTIMATOR", label: "Estimator" },
+  { value: "SUPER", label: "Super" },
+  { value: "FM", label: "FM" },
+  { value: "PURCHASING", label: "Purchasing" },
+  { value: "SPEC_WRITER", label: "Spec Writer" },
+];
 
 const TYPE_ICONS: Record<string, string> = {
   CALL: "\u{1F4DE}", VISIT: "\u{1F3D7}\uFE0F", PREBID_WALK: "\u{1F6B6}",
@@ -24,14 +36,127 @@ function relTime(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
+// ── Edit Contact Modal ──
+
+function EditContactModal({ contact, onSave, onClose }: {
+  contact: Database["public"]["Tables"]["contacts"]["Row"];
+  onSave: (fields: Record<string, string | boolean | null>) => Promise<void>;
+  onClose: () => void;
+}) {
+  // Split name into first/last for editing
+  const parts = contact.name.split(" ");
+  const initFirst = parts[0] ?? "";
+  const initLast = parts.slice(1).join(" ") ?? "";
+
+  const [f, setF] = useState({
+    firstName: initFirst,
+    lastName: initLast,
+    title: contact.title ?? "",
+    role: contact.role as ContactRole,
+    phone: contact.phone ?? "",
+    email: contact.email ?? "",
+    city: contact.city ?? "",
+    state: contact.state ?? "",
+    linkedin_url: contact.linkedin_url ?? "",
+    is_decision_maker: contact.is_decision_maker,
+    is_favorite: contact.is_favorite,
+  });
+  const [saving, setSaving] = useState(false);
+
+  const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
+  const cls = "w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-heading focus:outline-none focus:ring-2 focus:ring-brand-ring focus:border-brand/40";
+
+  const handleSave = async (e: FormEvent) => {
+    e.preventDefault();
+    const fullName = `${f.firstName.trim()} ${f.lastName.trim()}`.trim();
+    if (!fullName) return;
+    setSaving(true);
+    await onSave({
+      name: fullName,
+      title: f.title || null,
+      role: f.role,
+      phone: f.phone || null,
+      email: f.email || null,
+      city: f.city || null,
+      state: f.state || null,
+      linkedin_url: f.linkedin_url || null,
+      is_decision_maker: f.is_decision_maker,
+      is_favorite: f.is_favorite,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <form onSubmit={handleSave} className="w-full max-w-lg bg-card rounded-2xl p-6 max-h-[90svh] overflow-y-auto" style={{ boxShadow: "var(--shadow-card)" }}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-heading">Edit Contact</h2>
+          <button type="button" onClick={onClose} className="text-subtle text-2xl leading-none">&times;</button>
+        </div>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="block text-[10px] text-label uppercase tracking-wider mb-0.5">First Name</label>
+              <input required value={f.firstName} onChange={(e) => set("firstName", e.target.value)} className={cls} /></div>
+            <div><label className="block text-[10px] text-label uppercase tracking-wider mb-0.5">Last Name</label>
+              <input value={f.lastName} onChange={(e) => set("lastName", e.target.value)} className={cls} /></div>
+          </div>
+          <div><label className="block text-[10px] text-label uppercase tracking-wider mb-0.5">Title</label>
+            <input value={f.title} onChange={(e) => set("title", e.target.value)} className={cls} placeholder="Project Manager" /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="block text-[10px] text-label uppercase tracking-wider mb-0.5">Role</label>
+              <select value={f.role} onChange={(e) => set("role", e.target.value)} className={cls}>
+                {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+              </select></div>
+            <div><label className="block text-[10px] text-label uppercase tracking-wider mb-0.5">Phone</label>
+              <input type="tel" value={f.phone} onChange={(e) => set("phone", e.target.value)} className={cls} placeholder="313-555-0100" /></div>
+          </div>
+          <div><label className="block text-[10px] text-label uppercase tracking-wider mb-0.5">Email</label>
+            <input type="email" value={f.email} onChange={(e) => set("email", e.target.value)} className={cls} placeholder="name@company.com" /></div>
+          <div><label className="block text-[10px] text-label uppercase tracking-wider mb-0.5">LinkedIn</label>
+            <input type="url" value={f.linkedin_url} onChange={(e) => set("linkedin_url", e.target.value)} className={cls} placeholder="https://linkedin.com/in/..." /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="block text-[10px] text-label uppercase tracking-wider mb-0.5">City</label>
+              <input value={f.city} onChange={(e) => set("city", e.target.value)} className={cls} placeholder="Detroit" /></div>
+            <div><label className="block text-[10px] text-label uppercase tracking-wider mb-0.5">State</label>
+              <input value={f.state} onChange={(e) => set("state", e.target.value)} className={cls} placeholder="MI" maxLength={2} /></div>
+          </div>
+          <div className="flex items-center justify-between py-1">
+            <label className="flex items-center gap-2.5 cursor-pointer">
+              <input type="checkbox" checked={f.is_decision_maker}
+                onChange={(e) => setF((p) => ({ ...p, is_decision_maker: e.target.checked }))}
+                className="rounded border-gray-300 text-brand focus:ring-brand h-4 w-4" />
+              <span className="text-sm text-heading">Decision Maker</span>
+            </label>
+            <label className="flex items-center gap-2.5 cursor-pointer">
+              <input type="checkbox" checked={f.is_favorite}
+                onChange={(e) => setF((p) => ({ ...p, is_favorite: e.target.checked }))}
+                className="rounded border-gray-300 text-brand focus:ring-brand h-4 w-4" />
+              <span className="text-sm text-heading">Favorite</span>
+            </label>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-5">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-label hover:text-heading">Cancel</button>
+          <button type="submit" disabled={saving}
+            className="px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg active:bg-brand-hover disabled:opacity-50">
+            {saving ? "Saving..." : "Save Changes"}</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// ── Main ──
+
 export default function ContactDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data, loading, error } = useContact(id);
+  const { data, loading, error, refetch, updateContact } = useContact(id);
   const { items, loading: tlLoading, lastContacted, addNote } = useContactTimeline(id, data?.company_id);
   const [noteInput, setNoteInput] = useState("");
   const [noteExpanded, setNoteExpanded] = useState(false);
   const [noteSaving, setNoteSaving] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+
   const handleArchive = async () => {
     if (!supabase || !id || !data) return;
     const isArchived = !!data.contact.archived_at;
@@ -40,7 +165,7 @@ export default function ContactDetail() {
     } else {
       await supabase.from("contacts").update({ archived_at: new Date().toISOString() }).eq("id", id);
     }
-    window.location.reload();
+    await refetch();
   };
 
   if (loading) {
@@ -87,12 +212,19 @@ export default function ContactDetail() {
               <span className="rounded-full bg-pending-light text-pending px-2 py-0.5 text-[10px] font-medium">Archived</span>
             )}
           </div>
-          <button onClick={handleArchive}
-            className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 text-xs text-label border border-card-border rounded-lg hover:bg-gray-50 transition-colors"
-            title={c.archived_at ? "Unarchive" : "Archive"}>
-            {c.archived_at ? <ArchiveRestore size={12} /> : <Archive size={12} />}
-            {c.archived_at ? "Unarchive" : "Archive"}
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button onClick={() => setShowEdit(true)}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-label border border-card-border rounded-lg hover:bg-gray-50 transition-colors"
+              title="Edit contact">
+              <Pencil size={12} /> Edit
+            </button>
+            <button onClick={handleArchive}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-label border border-card-border rounded-lg hover:bg-gray-50 transition-colors"
+              title={c.archived_at ? "Unarchive" : "Archive"}>
+              {c.archived_at ? <ArchiveRestore size={12} /> : <Archive size={12} />}
+              {c.archived_at ? "Unarchive" : "Archive"}
+            </button>
+          </div>
         </div>
         <p className="text-sm text-heading mb-1">{c.title ?? ROLE_LABELS[c.role] ?? c.role}</p>
         <div className="flex items-center gap-2 mb-2">
@@ -105,9 +237,11 @@ export default function ContactDetail() {
           </button>
         </div>
         <div className="flex flex-wrap items-center gap-4 mt-3">
-          <a href={`tel:${c.phone}`} className="flex items-center gap-1.5 text-sm text-brand font-medium">
-            <Phone size={16} /> {c.phone}
-          </a>
+          {c.phone && (
+            <a href={`tel:${c.phone}`} className="flex items-center gap-1.5 text-sm text-brand font-medium">
+              <Phone size={16} /> {c.phone}
+            </a>
+          )}
           {c.email && (
             <a href={`mailto:${c.email}`} className="flex items-center gap-1.5 text-sm text-brand font-medium">
               <Mail size={16} /> {c.email}
@@ -214,6 +348,18 @@ export default function ContactDetail() {
           </div>
         )}
       </div>
+
+      {/* Edit modal */}
+      {showEdit && (
+        <EditContactModal
+          contact={c}
+          onSave={async (fields) => {
+            await updateContact(fields);
+            setShowEdit(false);
+          }}
+          onClose={() => setShowEdit(false)}
+        />
+      )}
     </div>
   );
 }
