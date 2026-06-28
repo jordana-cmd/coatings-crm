@@ -9,35 +9,68 @@ export interface ContactWithCompany extends ContactRow {
   company_name: string | null;
 }
 
-export function useContactList(includeArchived = false) {
+export interface ContactFilters {
+  role: ContactRole | "ALL";
+  search: string;
+  includeArchived: boolean;
+}
+
+function mapContactRow(c: Record<string, unknown>): ContactWithCompany {
+  return {
+    ...(c as ContactRow),
+    company_name: (c.companies as { name: string } | null)?.name ?? null,
+  };
+}
+
+/** Build the filtered query (single source of truth). Async because of company-name search lookup. */
+async function fetchContacts(filters: ContactFilters, rangeFrom?: number, rangeTo?: number) {
+  if (!supabase) return { data: null, count: 0 };
+
+  // If searching, find matching company IDs first so we can OR with name/title matches
+  let companyIds: string[] | null = null;
+  if (filters.search) {
+    const { data: cos } = await supabase
+      .from("companies").select("id").ilike("name", `%${filters.search}%`);
+    companyIds = (cos ?? []).map((c) => c.id);
+  }
+
+  let q = supabase.from("contacts").select("*, companies(name)", { count: "exact" }).order("name");
+  if (!filters.includeArchived) q = q.is("archived_at", null);
+  if (filters.role !== "ALL") q = q.eq("role", filters.role);
+
+  if (filters.search) {
+    if (companyIds && companyIds.length > 0) {
+      q = q.or(`name.ilike.%${filters.search}%,title.ilike.%${filters.search}%,company_id.in.(${companyIds.join(",")})`);
+    } else {
+      q = q.or(`name.ilike.%${filters.search}%,title.ilike.%${filters.search}%`);
+    }
+  }
+
+  if (rangeFrom != null && rangeTo != null) q = q.range(rangeFrom, rangeTo);
+
+  return q;
+}
+
+export function useContactList(filters: ContactFilters, page: number, pageSize: number) {
   const [contacts, setContacts] = useState<ContactWithCompany[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
-    if (!supabase) return;
     setLoading(true);
-    let q = supabase.from("contacts").select("*, companies(name)").order("name");
-    if (!includeArchived) q = q.is("archived_at", null);
-    const { data } = await q;
-
-    setContacts(
-      (data ?? []).map((c) => ({
-        ...c,
-        company_name: (c.companies as { name: string } | null)?.name ?? null,
-      }))
-    );
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+    const { data, count } = await fetchContacts(filters, from, to);
+    setContacts((data ?? []).map(mapContactRow));
+    setTotalCount(count ?? 0);
     setLoading(false);
-  }, []);
+  }, [filters.role, filters.search, filters.includeArchived, page, pageSize]);
 
   useEffect(() => { fetch(); }, [fetch]);
 
   const createContact = async (input: {
-    company_id: string;
-    name: string;
-    role: ContactRole;
-    phone: string;
-    email?: string;
-    is_decision_maker?: boolean;
+    company_id: string; name: string; role: ContactRole; phone: string;
+    email?: string; is_decision_maker?: boolean;
   }) => {
     if (!supabase) return { error: "Not configured" };
     const { error } = await supabase.from("contacts").insert(input);
@@ -64,7 +97,13 @@ export function useContactList(includeArchived = false) {
     await fetch();
   };
 
-  return { contacts, loading, createContact, archiveContact, unarchiveContact, toggleFavorite, refetch: fetch };
+  return { contacts, totalCount, loading, createContact, archiveContact, unarchiveContact, toggleFavorite, refetch: fetch };
+}
+
+/** Fetch ALL contacts matching the current filters (no pagination). For future export. */
+export async function fetchAllFilteredContacts(filters: ContactFilters): Promise<ContactWithCompany[]> {
+  const { data } = await fetchContacts(filters);
+  return (data ?? []).map(mapContactRow);
 }
 
 export interface ContactDetail {

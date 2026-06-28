@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { useContactList } from "../hooks/useContacts";
+import { useContactList, type ContactFilters } from "../hooks/useContacts";
+import Pagination, { type PageSize } from "../components/ui/Pagination";
 import { supabase } from "../lib/supabase";
 import { Search, Phone, Mail, UserCheck, ExternalLink } from "lucide-react";
 import type { Database } from "../lib/database.types";
@@ -15,32 +16,22 @@ const ROLE_LABELS: Record<ContactRole, string> = {
 const ROLE_OPTIONS: ContactRole[] = ["PM", "ESTIMATOR", "SUPER", "FM", "PURCHASING", "SPEC_WRITER"];
 
 export default function ContactsList() {
-  const [showArchived, setShowArchived] = useState(false);
-  const { contacts, loading, createContact } = useContactList(showArchived);
-  const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<ContactRole | "ALL">("ALL");
+  const [search, setSearch] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState<PageSize>(50);
   const [showCreate, setShowCreate] = useState(false);
   const navigate = useNavigate();
 
-  const filtered = contacts.filter((c) => {
-    if (roleFilter !== "ALL" && c.role !== roleFilter) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      const matches = c.name.toLowerCase().includes(q)
-        || (c.title ?? "").toLowerCase().includes(q)
-        || (c.company_name ?? "").toLowerCase().includes(q);
-      if (!matches) return false;
-    }
-    return true;
-  });
+  const filters: ContactFilters = { role: roleFilter, search, includeArchived: showArchived };
+  const { contacts, totalCount, loading, createContact } = useContactList(filters, page, pageSize);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-48">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-shell-border border-t-brand" />
-      </div>
-    );
-  }
+  // Reset to page 0 when filters change
+  const setRoleAndReset = (v: ContactRole | "ALL") => { setRoleFilter(v); setPage(0); };
+  const setSearchAndReset = (v: string) => { setSearch(v); setPage(0); };
+  const setArchivedAndReset = (v: boolean) => { setShowArchived(v); setPage(0); };
+  const setPageSizeAndReset = (s: PageSize) => { setPageSize(s); setPage(0); };
 
   return (
     <div className="pb-16 md:pb-6">
@@ -54,13 +45,13 @@ export default function ContactsList() {
 
       {/* Role filter pills */}
       <div className="flex gap-1 mb-3 overflow-x-auto">
-        <button onClick={() => setRoleFilter("ALL")}
+        <button onClick={() => setRoleAndReset("ALL")}
           className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors
             ${roleFilter === "ALL" ? "bg-brand text-white" : "bg-gray-100 text-label hover:text-heading"}`}>
           All
         </button>
         {ROLE_OPTIONS.map((r) => (
-          <button key={r} onClick={() => setRoleFilter(r)}
+          <button key={r} onClick={() => setRoleAndReset(r)}
             className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors
               ${roleFilter === r ? "bg-brand text-white" : "bg-gray-100 text-label hover:text-heading"}`}>
             {ROLE_LABELS[r]}
@@ -71,28 +62,32 @@ export default function ContactsList() {
       <div className="relative mb-3">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-label" />
         <input type="text" placeholder="Search name, title, or company..." value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => setSearchAndReset(e.target.value)}
           className="w-full bg-card rounded-lg border border-card-border pl-9 pr-3 py-2.5 text-sm text-heading
                      focus:outline-none focus:ring-2 focus:ring-brand-ring focus:border-brand/40" />
       </div>
 
       <div className="flex items-center justify-between mb-2">
-        <p className="text-[10px] text-subtle">{filtered.length} of {contacts.length} contacts</p>
+        <p className="text-[10px] text-subtle">{totalCount} contacts</p>
         <label className="flex items-center gap-1.5 text-[10px] text-label cursor-pointer">
-          <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)}
+          <input type="checkbox" checked={showArchived} onChange={(e) => setArchivedAndReset(e.target.checked)}
             className="rounded border-gray-300 text-brand focus:ring-brand h-3 w-3" />
           Show archived
         </label>
       </div>
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="flex items-center justify-center h-48">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-shell-border border-t-brand" />
+        </div>
+      ) : contacts.length === 0 ? (
         <div className="bg-card rounded-xl shadow-sm p-12 text-center">
           <p className="text-label">No contacts match — try clearing a filter</p>
         </div>
       ) : (
         <div className="bg-card rounded-xl shadow-sm overflow-hidden">
           <div className="divide-y divide-card-border">
-            {filtered.map((c) => (
+            {contacts.map((c) => (
               <div key={c.id} className="px-5 py-4 flex items-center justify-between gap-3">
                 <button onClick={() => navigate(`/contacts/${c.id}`)}
                   className="min-w-0 text-left flex-1 cursor-pointer">
@@ -128,6 +123,10 @@ export default function ContactsList() {
                 </div>
               </div>
             ))}
+          </div>
+          <div className="px-4 pb-3">
+            <Pagination page={page} pageSize={pageSize} totalCount={totalCount}
+              onPageChange={setPage} onPageSizeChange={setPageSizeAndReset} />
           </div>
         </div>
       )}

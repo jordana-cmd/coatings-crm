@@ -1,6 +1,7 @@
 import { useState, useMemo, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { useCompanyList, type CompanyListItem } from "../hooks/useCompanyList";
+import { useCompanyList, type CompanyListItem, type CompanyFilters } from "../hooks/useCompanyList";
+import Pagination, { type PageSize } from "../components/ui/Pagination";
 import { Search, ClipboardCheck, FolderOpen } from "lucide-react";
 import type { Database } from "../lib/database.types";
 
@@ -12,7 +13,7 @@ const TYPE_LABELS: Record<CompanyType, string> = {
 const TYPE_OPTIONS: { value: CompanyType; label: string }[] = [
   { value: "GC", label: "GC" },
   { value: "AWARDING_AUTHORITY", label: "Awarding Authority" },
-  { value: "OWNER", label: "Plant Owner" },
+  { value: "OWNER", label: "Owner" },
   { value: "ARCHITECT", label: "Architect" },
 ];
 
@@ -26,7 +27,7 @@ function fmtDate(iso: string): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-// ── Sorting ──
+// ── Sorting (client-side within the page) ──
 
 type SortKey = "name" | "type" | "city" | "state" | "jobs_out_for_bid" | "last_activity_at";
 type SortDir = "asc" | "desc";
@@ -45,22 +46,16 @@ function sortCompanies(list: CompanyListItem[], key: SortKey, dir: SortDir): Com
       case "last_activity_at": av = a.last_activity_at; bv = b.last_activity_at; break;
     }
 
-    // Nulls last regardless of direction
     if (av == null && bv == null) return 0;
     if (av == null) return 1;
     if (bv == null) return -1;
 
     let cmp: number;
-    if (typeof av === "number" && typeof bv === "number") {
-      cmp = av - bv;
-    } else {
-      cmp = String(av).localeCompare(String(bv));
-    }
+    if (typeof av === "number" && typeof bv === "number") cmp = av - bv;
+    else cmp = String(av).localeCompare(String(bv));
     return dir === "asc" ? cmp : -cmp;
   });
 }
-
-// ── Table header ──
 
 function Th({ label, sortKey, active, dir, onSort }: {
   label: string; sortKey: SortKey; active: boolean; dir: SortDir; onSort: (k: SortKey) => void;
@@ -70,58 +65,46 @@ function Th({ label, sortKey, active, dir, onSort }: {
       onClick={() => onSort(sortKey)}>
       <span className="inline-flex items-center gap-1">
         {label}
-        {active && (
-          <span className="text-brand text-[10px]">{dir === "asc" ? "\u25B2" : "\u25BC"}</span>
-        )}
+        {active && <span className="text-brand text-[10px]">{dir === "asc" ? "\u25B2" : "\u25BC"}</span>}
       </span>
     </th>
   );
 }
 
-// ── Main ──
-
 const TYPE_FILTER_OPTIONS: { value: CompanyType | "ALL"; label: string }[] = [
   { value: "ALL", label: "All" },
   { value: "GC", label: "GC" },
   { value: "AWARDING_AUTHORITY", label: "Authority" },
-  { value: "OWNER", label: "Plant Owner" },
+  { value: "OWNER", label: "Owner" },
   { value: "ARCHITECT", label: "Architect" },
 ];
 
 export default function CompaniesList() {
-  const [showArchived, setShowArchived] = useState(false);
-  const { companies, loading, createCompany } = useCompanyList(showArchived);
-  const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<CompanyType | "ALL">("ALL");
+  const [search, setSearch] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState<PageSize>(50);
   const [showCreate, setShowCreate] = useState(false);
-  const [sortKey, setSortKey] = useState<SortKey>("last_activity_at");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const navigate = useNavigate();
 
-  const filtered = companies.filter((c) => {
-    if (typeFilter !== "ALL" && c.type !== typeFilter) return false;
-    if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+  const filters: CompanyFilters = { type: typeFilter, search, includeArchived: showArchived };
+  const { companies, totalCount, loading, createCompany } = useCompanyList(filters, page, pageSize);
 
-  const sorted = useMemo(() => sortCompanies(filtered, sortKey, sortDir), [filtered, sortKey, sortDir]);
+  const sorted = useMemo(() => sortCompanies(companies, sortKey, sortDir), [companies, sortKey, sortDir]);
 
   const handleSort = (key: SortKey) => {
-    if (key === sortKey) {
-      setSortDir(sortDir === "asc" ? "desc" : "asc");
-    } else {
-      setSortKey(key);
-      setSortDir(key === "jobs_out_for_bid" || key === "last_activity_at" ? "desc" : "asc");
-    }
+    if (key === sortKey) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir(key === "jobs_out_for_bid" || key === "last_activity_at" ? "desc" : "asc"); }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-48">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-shell-border border-t-brand" />
-      </div>
-    );
-  }
+  // Reset to page 0 when filters change
+  const setTypeAndReset = (v: CompanyType | "ALL") => { setTypeFilter(v); setPage(0); };
+  const setSearchAndReset = (v: string) => { setSearch(v); setPage(0); };
+  const setArchivedAndReset = (v: boolean) => { setShowArchived(v); setPage(0); };
+  const setPageSizeAndReset = (s: PageSize) => { setPageSize(s); setPage(0); };
 
   return (
     <div className="pb-16 md:pb-6">
@@ -136,7 +119,7 @@ export default function CompaniesList() {
       {/* Type filter pills */}
       <div className="flex gap-1 mb-3 overflow-x-auto">
         {TYPE_FILTER_OPTIONS.map((f) => (
-          <button key={f.value} onClick={() => setTypeFilter(f.value)}
+          <button key={f.value} onClick={() => setTypeAndReset(f.value)}
             className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors
               ${typeFilter === f.value ? "bg-brand text-white" : "bg-gray-100 text-label hover:text-heading"}`}>
             {f.label}
@@ -147,21 +130,25 @@ export default function CompaniesList() {
       <div className="relative mb-3">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-label" />
         <input type="text" placeholder="Search companies..." value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => setSearchAndReset(e.target.value)}
           className="w-full bg-card rounded-lg border border-card-border pl-9 pr-3 py-2.5 text-sm text-heading
                      focus:outline-none focus:ring-2 focus:ring-brand-ring focus:border-brand/40" />
       </div>
 
       <div className="flex items-center justify-between mb-2">
-        <p className="text-[10px] text-subtle">{sorted.length} of {companies.length} companies</p>
+        <p className="text-[10px] text-subtle">{totalCount} companies</p>
         <label className="flex items-center gap-1.5 text-[10px] text-label cursor-pointer">
-          <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)}
+          <input type="checkbox" checked={showArchived} onChange={(e) => setArchivedAndReset(e.target.checked)}
             className="rounded border-gray-300 text-brand focus:ring-brand h-3 w-3" />
           Show archived
         </label>
       </div>
 
-      {sorted.length === 0 ? (
+      {loading ? (
+        <div className="flex items-center justify-center h-48">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-shell-border border-t-brand" />
+        </div>
+      ) : sorted.length === 0 ? (
         <div className="bg-card rounded-xl shadow-sm p-12 text-center">
           <p className="text-label">{search || typeFilter !== "ALL" ? "No companies match — try clearing a filter" : "No companies yet."}</p>
         </div>
@@ -224,6 +211,10 @@ export default function CompaniesList() {
                 </tbody>
               </table>
             </div>
+            <div className="px-4 pb-3">
+              <Pagination page={page} pageSize={pageSize} totalCount={totalCount}
+                onPageChange={setPage} onPageSizeChange={setPageSizeAndReset} />
+            </div>
           </div>
 
           {/* Mobile cards */}
@@ -266,6 +257,10 @@ export default function CompaniesList() {
                 </button>
               ))}
             </div>
+            <div className="px-4 pb-3">
+              <Pagination page={page} pageSize={pageSize} totalCount={totalCount}
+                onPageChange={setPage} onPageSizeChange={setPageSizeAndReset} />
+            </div>
           </div>
         </>
       )}
@@ -286,23 +281,16 @@ function CreateCompanyModal({
   const [type, setType] = useState<CompanyType>("GC");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
-  const [address, setAddress] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [sub, setSub] = useState(false);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handle = async (e: FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
-    setError(null);
-    const st = state.trim().toUpperCase();
-    const res = await onCreate({
-      name: name.trim(), type,
-      region: st || "—",
-      address: address.trim(),
-      city: city.trim() || undefined,
-      state: st || undefined,
-    });
-    if (res.error) { setError(res.error); setSubmitting(false); }
+    setSub(true); setErr(null);
+    const region = state || "US";
+    const address = city && state ? `${city}, ${state}` : city || state || "";
+    const res = await onCreate({ name: name.trim(), type, region, address, city: city.trim() || undefined, state: state.trim() || undefined });
+    if (res.error) { setErr(res.error); setSub(false); }
     else onClose();
   };
 
@@ -310,14 +298,14 @@ function CreateCompanyModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
-      <form onSubmit={handleSubmit} className="w-full max-w-lg bg-card rounded-t-2xl sm:rounded-2xl p-6 max-h-[90svh] overflow-y-auto">
+      <form onSubmit={handle} className="w-full max-w-lg bg-card rounded-t-2xl sm:rounded-2xl p-6 max-h-[90svh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-heading">New Company</h2>
           <button type="button" onClick={onClose} className="text-subtle text-2xl leading-none">&times;</button>
         </div>
         <label className="block mb-3">
           <span className="block text-xs text-label mb-1">Company Name</span>
-          <input required value={name} onChange={(e) => setName(e.target.value)} className={cls} placeholder="e.g. Turner Construction" />
+          <input required value={name} onChange={(e) => setName(e.target.value)} className={cls} placeholder="Acme Construction" />
         </label>
         <label className="block mb-3">
           <span className="block text-xs text-label mb-1">Type</span>
@@ -335,14 +323,10 @@ function CreateCompanyModal({
             <input value={state} onChange={(e) => setState(e.target.value)} className={cls} placeholder="MI" maxLength={2} />
           </label>
         </div>
-        <label className="block mb-4">
-          <span className="block text-xs text-label mb-1">Address</span>
-          <input required value={address} onChange={(e) => setAddress(e.target.value)} className={cls} placeholder="123 Main St, Detroit, MI" />
-        </label>
-        {error && <p className="text-brand text-sm mb-3 text-center">{error}</p>}
-        <button type="submit" disabled={submitting}
-          className="w-full rounded-lg bg-brand text-white py-3 text-sm font-medium active:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed">
-          {submitting ? "Creating..." : "Create Company"}
+        {err && <p className="text-brand text-sm mb-3 text-center">{err}</p>}
+        <button type="submit" disabled={sub}
+          className="w-full rounded-lg bg-brand text-white py-3 text-sm font-medium active:bg-brand-hover disabled:opacity-50">
+          {sub ? "Creating..." : "Create Company"}
         </button>
       </form>
     </div>
