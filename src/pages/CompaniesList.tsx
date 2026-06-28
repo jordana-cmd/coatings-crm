@@ -7,12 +7,12 @@ import type { Database } from "../lib/database.types";
 type CompanyType = Database["public"]["Enums"]["company_type"];
 
 const TYPE_LABELS: Record<CompanyType, string> = {
-  GC: "GC", AWARDING_AUTHORITY: "Authority", PLANT_OWNER: "Plant Owner", ARCHITECT: "Architect",
+  GC: "GC", AWARDING_AUTHORITY: "Authority", OWNER: "Owner", ARCHITECT: "Architect",
 };
 const TYPE_OPTIONS: { value: CompanyType; label: string }[] = [
   { value: "GC", label: "GC" },
   { value: "AWARDING_AUTHORITY", label: "Awarding Authority" },
-  { value: "PLANT_OWNER", label: "Plant Owner" },
+  { value: "OWNER", label: "Plant Owner" },
   { value: "ARCHITECT", label: "Architect" },
 ];
 
@@ -84,7 +84,7 @@ const TYPE_FILTER_OPTIONS: { value: CompanyType | "ALL"; label: string }[] = [
   { value: "ALL", label: "All" },
   { value: "GC", label: "GC" },
   { value: "AWARDING_AUTHORITY", label: "Authority" },
-  { value: "PLANT_OWNER", label: "Plant Owner" },
+  { value: "OWNER", label: "Plant Owner" },
   { value: "ARCHITECT", label: "Architect" },
 ];
 

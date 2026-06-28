@@ -7,7 +7,7 @@ type CompanyType = Database["public"]["Enums"]["company_type"];
 const COMPANY_TYPES: { value: CompanyType; label: string }[] = [
   { value: "GC", label: "GC" },
   { value: "AWARDING_AUTHORITY", label: "Awarding Authority" },
-  { value: "PLANT_OWNER", label: "Plant Owner" },
+  { value: "OWNER", label: "Owner" },
   { value: "ARCHITECT", label: "Architect" },
 ];
 
