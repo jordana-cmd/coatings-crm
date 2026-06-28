@@ -365,11 +365,15 @@ function TouchListSection() {
 // ── Pipeline Coverage KPI ──
 
 function CoverageKpi() {
-  const { target: goalTarget } = useRevenueGoal();
+  const { target: goalTarget, year } = useRevenueGoal();
   const { data: wonData, loading: wonLoading } = useClosedWonVsGoal();
   const { data: forecastData, loading: forecastLoading } = useForecast90d();
 
   if (wonLoading || forecastLoading) return <KpiCard label="Pipeline Coverage" value="—" />;
+
+  if (goalTarget == null) {
+    return <KpiCard label="Pipeline Coverage" value="—" subLabel={`Set a revenue goal for ${year}`} badge={<Target size={14} className="text-subtle" />} />;
+  }
 
   const closedWonYtd = wonData.reduce((s, r) => s + r.closed_won_ytd, 0);
   const weightedPipeline = forecastData.reduce((s, r) => s + r.total_weighted, 0);

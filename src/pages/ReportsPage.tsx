@@ -82,14 +82,18 @@ function ForecastChart({ filter }: { filter: FilterPipeline }) {
 
 // ── Report 2: Closed-Won vs Goal ──
 
-function ClosedWonGoalChart({ filter, goalTarget, goalYear }: { filter: FilterPipeline; goalTarget: number; goalYear: number }) {
+function ClosedWonGoalChart({ filter, goalTarget, goalYear }: { filter: FilterPipeline; goalTarget: number | null; goalYear: number }) {
   const { data, loading } = useClosedWonVsGoal();
   if (loading) return <div className="h-32 flex items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-brand" /></div>;
 
   const filtered = filter === "ALL" ? data : data.filter((d) => d.pipeline === filter);
   const totalWon = filtered.reduce((s, r) => s + r.closed_won_ytd, 0);
-  const goal = goalTarget;
+  const goal = goalTarget ?? 0;
   const pct = goal > 0 ? Math.min(totalWon / goal, 1) : 0;
+
+  if (goalTarget == null) {
+    return <p className="text-sm text-subtle text-center py-6">Set a revenue goal for {goalYear} to track pace</p>;
+  }
 
   const elapsed = daysElapsedInYear(goalYear);
   const totalDays = daysInYear(goalYear);
@@ -559,11 +563,12 @@ function BondExposureCard() {
 
 // ── Report 8: Coverage Gap ──
 
-function CoverageGapCard({ filter, goalTarget }: { filter: FilterPipeline; goalTarget: number }) {
+function CoverageGapCard({ filter, goalTarget }: { filter: FilterPipeline; goalTarget: number | null }) {
   const { data: wonData, loading: wonLoading } = useClosedWonVsGoal();
   const { data: forecastData, loading: forecastLoading } = useForecast90d();
 
   if (wonLoading || forecastLoading) return null;
+  if (goalTarget == null) return null;
 
   const wonFiltered = filter === "ALL" ? wonData : wonData.filter((d) => d.pipeline === filter);
   const closedWonYtd = wonFiltered.reduce((s, r) => s + r.closed_won_ytd, 0);
@@ -629,7 +634,7 @@ export default function ReportsPage() {
       <div>
         <h2 className="text-xs font-semibold text-label uppercase tracking-wider mb-3">Owner View</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <ReportCard title="Closed-Won vs Goal" subtitle={`Are we on pace for ${fmt$(goalTarget)} in ${goalYear}?`}>
+          <ReportCard title="Closed-Won vs Goal" subtitle={goalTarget != null ? `Are we on pace for ${fmt$(goalTarget)} in ${goalYear}?` : `Set a ${goalYear} revenue goal`}>
             <ClosedWonGoalChart filter={filter} goalTarget={goalTarget} goalYear={goalYear} />
           </ReportCard>
 

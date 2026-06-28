@@ -211,10 +211,11 @@ export function useGoals() {
   return { goals, loading, createGoal, updateGoal, deleteGoal };
 }
 
-/** Get the primary revenue goal for use in reports (replaces hardcoded constant) */
-export function useRevenueGoal(): { target: number; year: number; loading: boolean } {
-  const [target, setTarget] = useState(10_000_000); // fallback
-  const [year, setYear] = useState(2027);
+/** Get the CURRENT-YEAR annual revenue goal. Falls back to null if none exists for this year. */
+export function useRevenueGoal(): { target: number | null; year: number; loading: boolean } {
+  const currentYear = new Date().getFullYear();
+  const [target, setTarget] = useState<number | null>(null);
+  const [year, setYear] = useState(currentYear);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -224,17 +225,18 @@ export function useRevenueGoal(): { target: number; year: number; loading: boole
       .select("target_value, period_year")
       .eq("goal_type", "REVENUE_WON")
       .eq("period", "ANNUAL")
+      .eq("period_year", currentYear)
       .is("owner_id", null)
-      .order("period_year", { ascending: false })
       .limit(1)
       .then(({ data }) => {
         if (data && data.length > 0) {
           setTarget(Number(data[0].target_value));
           setYear(data[0].period_year);
         }
+        // No goal for current year → target stays null
         setLoading(false);
       });
-  }, []);
+  }, [currentYear]);
 
   return { target, year, loading };
 }
