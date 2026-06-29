@@ -13,6 +13,7 @@ import QuickLogFAB from "../components/quick-log/QuickLogFAB";
 
 import type { Database } from "../lib/database.types";
 import { useBidQuotes } from "../hooks/useBidQuotes";
+import { useOppDocuments, type OppDocument } from "../hooks/useOppDocuments";
 import { supabase } from "../lib/supabase";
 import { Trash2 } from "lucide-react";
 
@@ -318,6 +319,42 @@ function NumberInput({ label, value, placeholder, onSave, isSaving }: {
   );
 }
 
+function GrossProfitInput({ amount, grossProfitPct, onSave, isSaving }: {
+  amount: number | null; grossProfitPct: number | null; onSave: (v: number | null) => void; isSaving: boolean;
+}) {
+  const [local, setLocal] = useState(grossProfitPct != null ? String(grossProfitPct) : "");
+  const numVal = local === "" ? null : parseFloat(local);
+  const dirty = numVal !== grossProfitPct;
+  const gpDollars = amount != null && numVal != null ? amount * numVal / 100 : null;
+
+  return (
+    <div className="py-2.5">
+      <label className="block text-xs text-label mb-1">Gross Profit %</label>
+      <div className="flex gap-2">
+        <input type="number" step="0.1" min="0" max="100" value={local}
+          onChange={(e) => setLocal(e.target.value)}
+          onBlur={() => { if (dirty) onSave(numVal); }} placeholder="e.g. 30"
+          disabled={isSaving}
+          className="w-24 rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-heading
+                     focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent disabled:opacity-50" />
+        {gpDollars != null && (
+          <span className="flex items-center text-xs text-label">
+            → ${gpDollars.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            {amount != null && <span className="text-subtle ml-1">on ${amount.toLocaleString()}</span>}
+          </span>
+        )}
+        {dirty && (
+          <button type="button" onClick={() => onSave(numVal)} disabled={isSaving}
+            className="rounded-lg bg-brand text-white px-3 py-2.5 text-xs font-medium
+                       active:bg-brand-hover disabled:opacity-50 shrink-0">
+            {isSaving ? "..." : "Save"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function DateInput({ label, value, onSave, isSaving }: {
   label: string; value: string | null; onSave: (v: string | null) => void; isSaving: boolean;
 }) {
@@ -346,6 +383,102 @@ function DateInput({ label, value, onSave, isSaving }: {
 
 // ── main component ─────────────────────────────────────────────────
 
+// ── Documents Card ──
+
+function formatFileSize(bytes: number | null): string {
+  if (bytes == null) return "—";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function DocumentsCard({ docs: hook }: { oppId: string; docs: ReturnType<typeof useOppDocuments> }) {
+  const { docs, loading, uploading, upload, getDownloadUrl, deleteDoc } = hook;
+  const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<OppDocument | null>(null);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError(null);
+    const result = await upload(file);
+    if (result.error) setError(result.error);
+    e.target.value = ""; // reset input
+  };
+
+  const handleDownload = async (doc: OppDocument) => {
+    const url = await getDownloadUrl(doc.storage_path);
+    if (url) window.open(url, "_blank");
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    const result = await deleteDoc(confirmDelete);
+    if (result.error) setError(result.error);
+    setConfirmDelete(null);
+  };
+
+  return (
+    <div className="bg-card rounded-xl shadow-sm p-5">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xs font-semibold text-label uppercase tracking-wide">
+          Documents {docs.length > 0 && <span className="text-heading">({docs.length})</span>}
+        </h3>
+        <label className={`rounded-lg bg-brand text-white px-3 py-1.5 text-xs font-medium cursor-pointer active:bg-brand-hover ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
+          {uploading ? "Uploading..." : "Upload"}
+          <input type="file" className="hidden" onChange={handleUpload} disabled={uploading} />
+        </label>
+      </div>
+
+      {error && (
+        <p className="text-xs text-brand bg-brand-light rounded-lg px-3 py-2 mb-3">{error}</p>
+      )}
+
+      {loading ? (
+        <div className="flex justify-center py-6">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-brand" />
+        </div>
+      ) : docs.length === 0 ? (
+        <p className="text-sm text-subtle text-center py-6">No documents attached — upload bid docs, proposals, or estimates.</p>
+      ) : (
+        <div className="space-y-2">
+          {docs.map((doc) => (
+            <div key={doc.id} className="flex items-center justify-between gap-3 rounded-lg border border-card-border px-3 py-2.5">
+              <button onClick={() => handleDownload(doc)} className="min-w-0 flex-1 text-left group">
+                <p className="text-sm font-medium text-heading truncate group-active:text-brand">{doc.file_name}</p>
+                <p className="text-[10px] text-subtle">
+                  {formatFileSize(doc.file_size)} · {new Date(doc.uploaded_at).toLocaleDateString()}
+                </p>
+              </button>
+              <button onClick={() => setConfirmDelete(doc)}
+                className="shrink-0 text-[10px] text-label hover:text-brand px-2 py-1 rounded active:bg-gray-50">
+                Delete
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Delete confirmation */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-card rounded-2xl p-5 max-w-sm w-full" style={{ boxShadow: "var(--shadow-card)" }}>
+            <p className="text-sm font-semibold text-heading mb-2">Delete document?</p>
+            <p className="text-xs text-label mb-4 truncate">{confirmDelete.file_name}</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setConfirmDelete(null)} className="px-4 py-2 text-sm text-label hover:text-heading">Cancel</button>
+              <button onClick={handleDelete}
+                className="px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg active:bg-brand-hover">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function OppDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -360,6 +493,7 @@ export default function OppDetail() {
   const [deleting, setDeleting] = useState(false);
   const isPublicBid = opp?.pipeline === "PUBLIC_BID";
   const bidQuotes = useBidQuotes(isPublicBid ? id : undefined);
+  const oppDocs = useOppDocuments(id);
 
   if (loading) {
     return (
@@ -437,6 +571,8 @@ export default function OppDetail() {
         <div className="divide-y divide-card-border">
           <NumberInput label="Amount ($)" value={opp.amount} placeholder="Bid amount"
             onSave={(v) => updateOppField("amount", v)} isSaving={isSaving("amount")} />
+          <GrossProfitInput amount={opp.amount} grossProfitPct={opp.gross_profit_pct}
+            onSave={(v) => updateOppField("gross_profit_pct", v)} isSaving={isSaving("gross_profit_pct")} />
           <TextInput label="Plans Link" value={bids.plans_link ?? ""} placeholder="https://planroom.com/..."
             onSave={(v) => updateBidsField("plans_link", v || null)} isSaving={isSaving("plans_link")} type="url" />
           <Toggle label="Go / No-Go" value={bids.go_no_go}
@@ -487,6 +623,9 @@ export default function OppDetail() {
 
       {/* GCs Quoted — PUBLIC_BID only */}
       {isPublicBid && <GCsQuotedCard bidQuotes={bidQuotes} />}
+
+      {/* Documents */}
+      <DocumentsCard oppId={opp.id} docs={oppDocs} />
 
       {/* Activity timeline */}
       <div className="bg-card rounded-xl shadow-sm p-5">

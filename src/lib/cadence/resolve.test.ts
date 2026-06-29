@@ -35,6 +35,7 @@ function makeOpp(overrides: Partial<OppRow> = {}): OppRow {
     completion_notes: null, final_value: null, expected_close_date: null,
     win_probability: null, stage_entered_at: null, next_step: null,
     next_step_date: null, priority: null, competitor: null,
+    gross_profit_pct: null,
     created_at: new Date().toISOString(), updated_at: null,
     ...overrides,
   };

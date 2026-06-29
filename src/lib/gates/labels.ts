@@ -18,6 +18,7 @@ export const GATE_ACTION_LABELS: Record<string, string> = {
 
   // PUBLIC_BID: SUBMITTED → AWARDED/LOST
   "bids.bid_due_at": "Bid due date must pass before advancing",
+  "opportunities.gross_profit_pct": "Record the gross profit % before closing won",
 
   // GC_CHASE (stubs — gate engine throws for these pipelines, but labels ready)
   "bids.invited": "Confirm invitation from GC",

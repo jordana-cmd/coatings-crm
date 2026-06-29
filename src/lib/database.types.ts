@@ -675,6 +675,7 @@ export type Database = {
           created_at: string
           expected_close_date: string | null
           final_value: number | null
+          gross_profit_pct: number | null
           id: string
           job_site_address: string
           job_site_lat: number | null
@@ -704,6 +705,7 @@ export type Database = {
           created_at?: string
           expected_close_date?: string | null
           final_value?: number | null
+          gross_profit_pct?: number | null
           id?: string
           job_site_address: string
           job_site_lat?: number | null
@@ -733,6 +735,7 @@ export type Database = {
           created_at?: string
           expected_close_date?: string | null
           final_value?: number | null
+          gross_profit_pct?: number | null
           id?: string
           job_site_address?: string
           job_site_lat?: number | null
@@ -781,6 +784,61 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_customer_concentration"
             referencedColumns: ["company_id"]
+          },
+        ]
+      }
+      opportunity_documents: {
+        Row: {
+          file_name: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          opportunity_id: string
+          storage_path: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          file_name: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          opportunity_id: string
+          storage_path: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          opportunity_id?: string
+          storage_path?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_documents_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunity_documents_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "v_closing_this_month"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunity_documents_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "v_stale_leaks"
+            referencedColumns: ["id"]
           },
         ]
       }

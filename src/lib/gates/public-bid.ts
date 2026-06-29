@@ -47,12 +47,24 @@ export function submittedToAwarded(opp: OppWithBids): GateResult {
   if (!opp.bids.bid_due_at || new Date(opp.bids.bid_due_at) > new Date()) {
     unmet.push({ field: "bids.bid_due_at", label: "Bid due date has passed" });
   }
+  // GP gate: required to close-won
+  if (opp.gross_profit_pct == null || opp.gross_profit_pct <= 0) {
+    unmet.push({ field: "opportunities.gross_profit_pct", label: "Gross profit % recorded" });
+  }
 
   return { allowed: unmet.length === 0, unmet };
 }
 
-// Same gate for SUBMITTED → LOST
-export const submittedToLost = submittedToAwarded;
+export function submittedToLost(opp: OppWithBids): GateResult {
+  const unmet: UnmetCondition[] = [];
+
+  if (!opp.bids.bid_due_at || new Date(opp.bids.bid_due_at) > new Date()) {
+    unmet.push({ field: "bids.bid_due_at", label: "Bid due date has passed" });
+  }
+  // GP NOT required for LOST — only for close-won
+
+  return { allowed: unmet.length === 0, unmet };
+}
 
 const PUBLIC_BID_GATES: Record<string, (opp: OppWithBids) => GateResult> = {
   "SOURCED→ESTIMATING": sourcedToEstimating,

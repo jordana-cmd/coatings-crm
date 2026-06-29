@@ -32,6 +32,7 @@ function makeOpp(overrides: Partial<OppRow> = {}): OppRow {
     next_step_date: null,
     priority: null,
     competitor: null,
+    gross_profit_pct: null,
     created_at: new Date().toISOString(),
     updated_at: null,
     ...overrides,
@@ -253,7 +254,7 @@ describe("PUBLIC_BID: SUBMITTED → AWARDED", () => {
   it("allows when bid_due_at is in the past", () => {
     const pastDate = new Date(Date.now() - 86400000).toISOString();
     const opp = makeOppWithBids(
-      { stage: "SUBMITTED" },
+      { stage: "SUBMITTED", gross_profit_pct: 30 },
       { bid_due_at: pastDate }
     );
     const result = canAdvance(opp, "AWARDED");
@@ -387,5 +388,53 @@ describe("isDisqualified (pre-bid walk red-flag)", () => {
       }
     );
     expect(isDisqualified(opp)).toBe(false);
+  });
+});
+
+// ── SUBMITTED → AWARDED: Gross Profit gate ────────────────────────
+
+describe("PUBLIC_BID: SUBMITTED → AWARDED gross profit gate", () => {
+  const pastDue = new Date(Date.now() - 86400000).toISOString();
+
+  it("blocks AWARDED when gross_profit_pct is null", () => {
+    const opp = makeOppWithBids(
+      { stage: "SUBMITTED", gross_profit_pct: null },
+      { bid_due_at: pastDue }
+    );
+    const result = canAdvance(opp, "AWARDED");
+    expect(result.allowed).toBe(false);
+    expect(result.unmet).toContainEqual({
+      field: "opportunities.gross_profit_pct",
+      label: "Gross profit % recorded",
+    });
+  });
+
+  it("blocks AWARDED when gross_profit_pct is 0", () => {
+    const opp = makeOppWithBids(
+      { stage: "SUBMITTED", gross_profit_pct: 0 },
+      { bid_due_at: pastDue }
+    );
+    const result = canAdvance(opp, "AWARDED");
+    expect(result.allowed).toBe(false);
+    expect(result.unmet.some((u) => u.field === "opportunities.gross_profit_pct")).toBe(true);
+  });
+
+  it("allows AWARDED when gross_profit_pct is set and positive", () => {
+    const opp = makeOppWithBids(
+      { stage: "SUBMITTED", gross_profit_pct: 30 },
+      { bid_due_at: pastDue }
+    );
+    const result = canAdvance(opp, "AWARDED");
+    expect(result.allowed).toBe(true);
+    expect(result.unmet).toHaveLength(0);
+  });
+
+  it("does NOT require gross_profit_pct for LOST", () => {
+    const opp = makeOppWithBids(
+      { stage: "SUBMITTED", gross_profit_pct: null },
+      { bid_due_at: pastDue }
+    );
+    const result = canAdvance(opp, "LOST");
+    expect(result.allowed).toBe(true);
   });
 });
