@@ -12,6 +12,7 @@ import {
   useRevenueData,
   computeRevRealization,
   useBidsThisWeek,
+  useBidsSubmittedByPeriod,
   type RevPeriod,
   type ClosingRow,
   type StaleRow,
@@ -297,6 +298,48 @@ function BidsThisWeekCard() {
           </>
         )}
       </div>
+    </ReportCard>
+  );
+}
+
+// ── Card: Bids Submitted (adjustable timeframe) ──
+
+const BIDS_SUBMITTED_PERIODS: { value: RevPeriod; label: string; emptyLabel: string }[] = [
+  { value: "WEEK", label: "Weekly", emptyLabel: "this week" },
+  { value: "MONTH", label: "Monthly", emptyLabel: "this month" },
+  { value: "QUARTER", label: "Quarterly", emptyLabel: "this quarter" },
+  { value: "YEAR", label: "YTD", emptyLabel: "this year" },
+  { value: "TRAILING_12", label: "Past 12 Mo.", emptyLabel: "in the past 12 months" },
+  { value: "ALL", label: "Forever", emptyLabel: "yet" },
+];
+
+function BidsSubmittedCard() {
+  const [period, setPeriod] = useState<RevPeriod>("MONTH");
+  const { data, loading } = useBidsSubmittedByPeriod(period);
+  const periodLabel = BIDS_SUBMITTED_PERIODS.find((p) => p.value === period)!;
+
+  return (
+    <ReportCard title="Bids Submitted" subtitle="Total $ submitted, regardless of win/loss">
+      <div className="flex bg-gray-100 rounded-lg p-0.5 mb-4">
+        {BIDS_SUBMITTED_PERIODS.map((p) => (
+          <button key={p.value} onClick={() => setPeriod(p.value)}
+            className={`flex-1 px-1.5 py-1 text-[10px] font-medium rounded-md transition-colors
+              ${period === p.value ? "bg-brand text-white" : "text-label hover:text-heading"}`}>
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="h-16 flex items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-brand" /></div>
+      ) : data.count === 0 ? (
+        <p className="text-sm text-subtle text-center py-6">No bids submitted {periodLabel.emptyLabel}</p>
+      ) : (
+        <div className="text-center py-2">
+          <p className="text-2xl font-semibold text-heading">{fmt$(data.total)}</p>
+          <p className="text-xs text-subtle mt-1">{data.count} bid{data.count !== 1 ? "s" : ""} submitted</p>
+        </div>
+      )}
     </ReportCard>
   );
 }
@@ -646,6 +689,7 @@ export default function ReportsPage() {
           <RevenueRealizationCard />
           <AvgJobSizeCard />
           <BidsThisWeekCard />
+          <BidsSubmittedCard />
           <BondExposureCard />
         </div>
       </div>

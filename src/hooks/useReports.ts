@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import type { Database } from "../lib/database.types";
+import { ALL_SUBMITTED_STAGES } from "../lib/bidsSubmitted";
 
 type Pipeline = Database["public"]["Enums"]["pipeline_type"];
 
@@ -311,18 +312,27 @@ export function useRevenueData() {
   return { rows, loading };
 }
 
-export type RevPeriod = "MONTH" | "QUARTER" | "YEAR" | "ALL";
+export type RevPeriod = "WEEK" | "MONTH" | "QUARTER" | "YEAR" | "TRAILING_12" | "ALL";
 
 export function getPeriodBounds(period: RevPeriod): { start: Date; end: Date } | null {
   if (period === "ALL") return null;
   const now = new Date();
   const y = now.getFullYear();
   const m = now.getMonth();
+  const d = now.getDate();
+  if (period === "WEEK") {
+    const day = now.getDay(); // 0=Sun
+    const diffToMon = day === 0 ? -6 : 1 - day;
+    const mon = new Date(y, m, d + diffToMon);
+    const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 7);
+    return { start: mon, end: sun };
+  }
   if (period === "MONTH") return { start: new Date(y, m, 1), end: new Date(y, m + 1, 1) };
   if (period === "QUARTER") {
     const q = Math.floor(m / 3);
     return { start: new Date(y, q * 3, 1), end: new Date(y, q * 3 + 3, 1) };
   }
+  if (period === "TRAILING_12") return { start: new Date(y, m - 11, 1), end: new Date(y, m, d + 1) };
   return { start: new Date(y, 0, 1), end: new Date(y + 1, 0, 1) };
 }
 
@@ -363,6 +373,48 @@ export function computeRevRealization(rows: WonOppRow[], period: RevPeriod) {
   return { periodWon, periodWonCount, periodInstalled, periodInstalledCount, backlog, allTimeWon, allTimeInstalled };
 }
 
+// ── Bids Submitted (adjustable timeframe) ──
+export interface BidsSubmittedPeriodResult {
+  total: number;
+  count: number;
+}
+
+export function useBidsSubmittedByPeriod(period: RevPeriod) {
+  const [data, setData] = useState<BidsSubmittedPeriodResult>({ total: 0, count: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!supabase) return;
+    setLoading(true);
+
+    (async () => {
+      const bounds = getPeriodBounds(period);
+      let q = supabase.from("opportunity_stage_history").select("opportunity_id")
+        .in("to_stage", ALL_SUBMITTED_STAGES);
+      if (bounds) {
+        q = q.gte("changed_at", bounds.start.toISOString()).lt("changed_at", bounds.end.toISOString());
+      }
+      const { data: histRows } = await q;
+      const oppIds = [...new Set((histRows ?? []).map((r) => r.opportunity_id))];
+
+      if (oppIds.length === 0) {
+        setData({ total: 0, count: 0 });
+        setLoading(false);
+        return;
+      }
+
+      const { data: opps } = await supabase.from("opportunities").select("amount")
+        .in("id", oppIds).not("amount", "is", null);
+      const total = (opps ?? []).reduce((s, o) => s + Number(o.amount ?? 0), 0);
+
+      setData({ total, count: oppIds.length });
+      setLoading(false);
+    })();
+  }, [period]);
+
+  return { data, loading };
+}
+
 // ── Bids This Week ──
 export interface BidsThisWeek {
   submitted: number;
@@ -391,7 +443,7 @@ export function useBidsThisWeek() {
       const { data: histRows } = await supabase
         .from("opportunity_stage_history")
         .select("opportunity_id")
-        .eq("to_stage", "SUBMITTED")
+        .in("to_stage", ALL_SUBMITTED_STAGES)
         .gte("changed_at", start)
         .lt("changed_at", end);
 
