@@ -643,6 +643,7 @@ export type Database = {
           contracting_officer: string | null
           created_at: string
           department: string | null
+          description_text: string | null
           estimate_mobilization: number | null
           estimate_sqft_rate: number | null
           estimate_total: number | null
@@ -656,6 +657,7 @@ export type Database = {
           office: string | null
           opportunity_id: string
           past_performance: string | null
+          posted_date: string | null
           pricing_intel: Json | null
           response_deadline: string | null
           sam_notice_id: string | null
@@ -691,6 +693,7 @@ export type Database = {
           contracting_officer?: string | null
           created_at?: string
           department?: string | null
+          description_text?: string | null
           estimate_mobilization?: number | null
           estimate_sqft_rate?: number | null
           estimate_total?: number | null
@@ -704,6 +707,7 @@ export type Database = {
           office?: string | null
           opportunity_id: string
           past_performance?: string | null
+          posted_date?: string | null
           pricing_intel?: Json | null
           response_deadline?: string | null
           sam_notice_id?: string | null
@@ -739,6 +743,7 @@ export type Database = {
           contracting_officer?: string | null
           created_at?: string
           department?: string | null
+          description_text?: string | null
           estimate_mobilization?: number | null
           estimate_sqft_rate?: number | null
           estimate_total?: number | null
@@ -752,6 +757,7 @@ export type Database = {
           office?: string | null
           opportunity_id?: string
           past_performance?: string | null
+          posted_date?: string | null
           pricing_intel?: Json | null
           response_deadline?: string | null
           sam_notice_id?: string | null
@@ -1087,6 +1093,7 @@ export type Database = {
           id: string
           naics_codes: string[]
           new_imported: number
+          requests_used: number
           results_found: number
           set_asides: string[] | null
           synced_at: string
@@ -1097,6 +1104,7 @@ export type Database = {
           id?: string
           naics_codes: string[]
           new_imported?: number
+          requests_used?: number
           results_found?: number
           set_asides?: string[] | null
           synced_at?: string
@@ -1107,6 +1115,7 @@ export type Database = {
           id?: string
           naics_codes?: string[]
           new_imported?: number
+          requests_used?: number
           results_found?: number
           set_asides?: string[] | null
           synced_at?: string

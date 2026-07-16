@@ -78,4 +78,6 @@ Rationale: pipeline-specific flags belong on extension tables (same pattern as g
 - Extension table: `federal_details` (SAM.gov identity, Claude extraction/scoring fields, estimate, submission tracking)
 - Server-side functions: Supabase Edge Functions (`sam-gov-search`, `claude-extract`, `claude-score`)
 - Secrets: `SAM_GOV_API_KEY`, `ANTHROPIC_API_KEY` (set via `supabase secrets set`)
-- SAM.gov deduplication key: `federal_details.sam_notice_id`
+- SAM.gov deduplication key: `federal_details.solicitation_number` (DB-enforced via a partial unique index, app-enforced in the import RPC). Note: SAM.gov can repost an amended notice (new `sam_notice_id`) under the same `solicitation_number` — the amendment is treated as already-imported and silently skipped. Accepted tradeoff for a manual/periodic pull, not a live sync.
+- `sam-gov-search` runs its dedup cross-check with the Supabase **service-role** key, not the calling user's JWT — `federal_details` RLS scopes reps to their own opportunities, so a user-JWT-scoped dedup check would miss other reps' imports and cause duplicate imports across users. The import write path still uses the calling user's JWT so `auth.uid()` correctly attributes ownership.
+- Run logging: `sam_gov_sync_log` (one row per search pull — `requests_used`, `results_found`, `naics_codes`, `set_asides`, `errors`).
