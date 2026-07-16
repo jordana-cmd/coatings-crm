@@ -390,7 +390,13 @@ Deno.serve(async (req) => {
         department,
         office,
         naicsCode: typeof item.naicsCode === "string" ? item.naicsCode : null,
-        setAsideType: typeof item.setAsideCode === "string" ? item.setAsideCode : null,
+        // Live API returns typeOfSetAside; docs claim setAsideCode — accept both
+        setAsideType:
+          typeof item.typeOfSetAside === "string" && item.typeOfSetAside
+            ? item.typeOfSetAside
+            : typeof item.setAsideCode === "string" && item.setAsideCode
+              ? item.setAsideCode
+              : null,
         postedDate: typeof item.postedDate === "string" ? item.postedDate : null,
         responseDeadline: typeof item.responseDeadLine === "string" ? item.responseDeadLine : null,
         descriptionText,
