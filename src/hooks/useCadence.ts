@@ -50,7 +50,7 @@ async function fetchAllTouchItems(): Promise<TouchListItem[]> {
   // ── Fetch OPEN opps with bids extension ──
   const { data: opps } = await supabase
     .from("opportunities")
-    .select("*, bids(*), companies(name)")
+    .select("*, bids(*), federal_details(site_visit_date, site_visit_completed, response_deadline), companies(name)")
     .eq("status", "OPEN");
 
   const oppIds = (opps ?? []).map((o) => o.id);
@@ -70,9 +70,12 @@ async function fetchAllTouchItems(): Promise<TouchListItem[]> {
 
   const oppItems: TouchListItem[] = [];
   for (const o of opps ?? []) {
+    const fedRaw = (o as Record<string, unknown>).federal_details;
+    const fedRow = Array.isArray(fedRaw) ? fedRaw[0] ?? null : fedRaw ?? null;
     const oppForCadence: OppForCadence = {
       ...o,
       bids: Array.isArray(o.bids) ? o.bids[0] ?? null : o.bids ?? null,
+      federalDetails: fedRow as OppForCadence["federalDetails"],
       lastContactedAt: lastActivityMap[o.id] ?? null,
     };
     const nextAction = resolveOppNextAction(oppForCadence);

@@ -79,7 +79,7 @@ interface GoalModalProps {
 function GoalModal({ mode, initial, onSave, onClose }: GoalModalProps) {
   const [goalType, setGoalType] = useState<GoalType>((initial?.goal_type as GoalType) ?? "REVENUE_WON");
   const [period, setPeriod] = useState(initial?.period ?? "ANNUAL");
-  const [year, setYear] = useState(initial?.period_year ?? 2027);
+  const [year, setYear] = useState(initial?.period_year ?? new Date().getFullYear());
   const [quarter, setQuarter] = useState<number | undefined>(initial?.period_quarter ?? undefined);
   const [month, setMonth] = useState<number | undefined>(initial?.period_month ?? undefined);
   const [pipeline, setPipeline] = useState(initial?.pipeline ?? "");

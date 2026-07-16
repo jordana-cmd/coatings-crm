@@ -9,11 +9,14 @@ const COMPANY_TYPES: { value: CompanyType; label: string }[] = [
   { value: "AWARDING_AUTHORITY", label: "Awarding Authority" },
   { value: "OWNER", label: "Owner" },
   { value: "ARCHITECT", label: "Architect" },
+  { value: "GOVERNMENT_AGENCY", label: "Government Agency" },
 ];
 
 interface Props {
+  pipeline?: string;
   onSubmit: (input: {
     name: string;
+    pipeline?: string;
     company_id: string;
     job_site_address: string;
     amount?: number | null;
@@ -21,7 +24,7 @@ interface Props {
   onClose: () => void;
 }
 
-export default function CreateOppForm({ onSubmit, onClose }: Props) {
+export default function CreateOppForm({ pipeline, onSubmit, onClose }: Props) {
   const { companies, loading: companiesLoading, createCompany } = useCompanies();
 
   const [name, setName] = useState("");
@@ -71,6 +74,7 @@ export default function CreateOppForm({ onSubmit, onClose }: Props) {
 
     const result = await onSubmit({
       name: name.trim(),
+      pipeline,
       company_id: finalCompanyId,
       job_site_address: jobSite.trim(),
       amount: amount ? parseFloat(amount) : null,
@@ -93,7 +97,7 @@ export default function CreateOppForm({ onSubmit, onClose }: Props) {
       >
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-heading">
-            New Public Bid
+            New {pipeline === "FEDERAL" ? "Federal" : pipeline === "GC_CHASE" ? "GC Chase" : pipeline === "FACILITY" ? "Facility" : "Public Bid"} Opportunity
           </h2>
           <button
             type="button"

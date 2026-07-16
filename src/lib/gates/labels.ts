@@ -36,6 +36,14 @@ export const GATE_ACTION_LABELS: Record<string, string> = {
   "facility_details.po_or_capital_approval": "Obtain PO or capital approval",
   "opportunities.revisit_date": "Set a revisit date",
 
+  // FEDERAL
+  "federal_details.extraction_status": "Run document extraction",
+  "federal_details.scoring_status": "Run opportunity scoring",
+  "federal_details.score_recommendation": "Review score recommendation",
+  "federal_details.estimate_total": "Calculate the estimate total",
+  "federal_details.bid_package_url": "Assemble the bid package",
+  "federal_details.response_deadline": "Response deadline must pass before advancing",
+
   // Stage transition
   "stage": "Invalid stage transition",
 };

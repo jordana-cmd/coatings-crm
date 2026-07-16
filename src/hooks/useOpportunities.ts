@@ -42,6 +42,7 @@ export function useOpportunities() {
 
   const create = async (input: {
     name: string;
+    pipeline?: string;
     company_id: string;
     job_site_address: string;
     amount?: number | null;
@@ -49,7 +50,7 @@ export function useOpportunities() {
     if (!supabase) return { error: "Supabase not configured" };
     const { error: err } = await supabase.rpc("create_opportunity", {
       p_name: input.name,
-      p_pipeline: "PUBLIC_BID",
+      p_pipeline: (input.pipeline ?? "PUBLIC_BID") as Database["public"]["Enums"]["pipeline_type"],
       p_company_id: input.company_id,
       p_job_site_address: input.job_site_address,
       p_amount: input.amount ?? undefined,

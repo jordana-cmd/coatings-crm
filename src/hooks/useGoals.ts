@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import type { Database } from "../lib/database.types";
+import { ALL_SUBMITTED_STAGES } from "../lib/bidsSubmitted";
 
 type PipelineEnum = Database["public"]["Enums"]["pipeline_type"];
 
@@ -85,10 +86,10 @@ export function useGoals() {
           }
 
           case "BIDS_SUBMITTED": {
-            // EXACT count from stage history: distinct opps that entered SUBMITTED in the period.
-            // Uses opportunity_stage_history.to_stage = 'SUBMITTED' (exact transition record).
+            // EXACT count from stage history: distinct opps that entered a "submitted" stage in the period.
+            // Uses opportunity_stage_history.to_stage (exact transition record) — per-pipeline mapping in bidsSubmitted.ts.
             let q = supabase.from("opportunity_stage_history").select("opportunity_id")
-              .eq("to_stage", "SUBMITTED")
+              .in("to_stage", ALL_SUBMITTED_STAGES)
               .gte("changed_at", startIso)
               .lt("changed_at", endIso);
             const { data } = await q;
@@ -148,9 +149,9 @@ export function useGoals() {
           }
 
           case "BIDS_SUBMITTED_VALUE": {
-            // EXACT $ sum from stage history: SUM(amount) for opps that entered SUBMITTED in period.
+            // EXACT $ sum from stage history: SUM(amount) for opps that entered a "submitted" stage in period.
             let q = supabase.from("opportunity_stage_history").select("opportunity_id")
-              .eq("to_stage", "SUBMITTED")
+              .in("to_stage", ALL_SUBMITTED_STAGES)
               .gte("changed_at", startIso)
               .lt("changed_at", endIso);
             const { data: histRows } = await q;

@@ -85,6 +85,36 @@ function autoForPublicBid(opp: OppForCadence): NextAction | null {
   };
 }
 
+function autoForFederal(opp: OppForCadence): NextAction | null {
+  if (!opp.federalDetails) return null;
+
+  const milestones: { action: string; date: string }[] = [];
+  const t = today();
+
+  if (opp.federalDetails.site_visit_date) {
+    const d = new Date(opp.federalDetails.site_visit_date).toISOString().slice(0, 10);
+    if (d >= t || !opp.federalDetails.site_visit_completed) {
+      milestones.push({ action: "Site visit", date: d });
+    }
+  }
+  if (opp.federalDetails.response_deadline) {
+    const d = new Date(opp.federalDetails.response_deadline).toISOString().slice(0, 10);
+    milestones.push({ action: "Response deadline", date: d });
+  }
+
+  if (milestones.length === 0) return null;
+
+  milestones.sort((a, b) => a.date.localeCompare(b.date));
+  const upcoming = milestones.find((m) => m.date >= t) ?? milestones[milestones.length - 1];
+
+  return {
+    action: upcoming.action,
+    dueDate: upcoming.date,
+    source: "auto",
+    urgency: computeUrgency(upcoming.date),
+  };
+}
+
 function autoForDrip(opp: OppForCadence, thresholdDays: number, motionLabel: string): NextAction | null {
   const days = daysSince(opp.lastContactedAt);
 
@@ -139,6 +169,8 @@ export function resolveOppNextAction(opp: OppForCadence): NextAction | null {
       return autoForDrip(opp, GC_CHASE_DAYS, "GC has gone quiet");
     case "FACILITY":
       return autoForDrip(opp, FACILITY_NURTURE_DAYS, "facility nurture");
+    case "FEDERAL":
+      return autoForFederal(opp);
     default:
       return null;
   }

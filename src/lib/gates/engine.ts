@@ -1,6 +1,6 @@
 import type { GateResult, OppForGates, OppWithBids } from "./types";
 import { getPublicBidGate } from "./public-bid";
-import { PUBLIC_BID_ACTIVE, GC_CHASE_ACTIVE, FACILITY_ACTIVE } from "../pipelines";
+import { PUBLIC_BID_ACTIVE, GC_CHASE_ACTIVE, FACILITY_ACTIVE, FEDERAL_ACTIVE } from "../pipelines";
 import type { Pipeline } from "../pipelines";
 
 /**
@@ -11,6 +11,7 @@ const ACTIVE_STAGES: Record<Pipeline, readonly string[]> = {
   PUBLIC_BID: PUBLIC_BID_ACTIVE,
   GC_CHASE: GC_CHASE_ACTIVE,
   FACILITY: FACILITY_ACTIVE,
+  FEDERAL: FEDERAL_ACTIVE,
 };
 
 /** Terminal outcome stages that can be reached from the last active stage. */
@@ -18,6 +19,7 @@ const TERMINAL_FROM: Record<Pipeline, Record<string, string[]>> = {
   PUBLIC_BID: { SUBMITTED: ["AWARDED", "LOST"] },
   GC_CHASE: { GC_AWARDED: ["WON", "LOST"] },
   FACILITY: { APPROVAL: ["WON", "LOST", "NURTURE"] },
+  FEDERAL: { SUBMITTED: ["AWARDED", "LOST"] },
 };
 
 function isValidTransition(
@@ -82,5 +84,9 @@ export function canAdvance(opp: OppForGates, targetStage: string): GateResult {
       throw new Error("GC_CHASE gate predicates not yet implemented");
     case "FACILITY":
       throw new Error("FACILITY gate predicates not yet implemented");
+    case "FEDERAL":
+      // FEDERAL gates are enforced server-side by the advance_stage() RPC.
+      // Client-side always allows (the RPC will reject if gates unmet).
+      return { allowed: true, unmet: [] };
   }
 }
