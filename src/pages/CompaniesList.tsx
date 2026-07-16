@@ -16,6 +16,7 @@ const TYPE_OPTIONS: { value: CompanyType; label: string }[] = [
   { value: "AWARDING_AUTHORITY", label: "Awarding Authority" },
   { value: "OWNER", label: "Owner" },
   { value: "ARCHITECT", label: "Architect" },
+  { value: "GOVERNMENT_AGENCY", label: "Government Agency" },
 ];
 
 function fmtDate(iso: string): string {
@@ -78,6 +79,7 @@ const TYPE_FILTER_OPTIONS: { value: CompanyType | "ALL"; label: string }[] = [
   { value: "AWARDING_AUTHORITY", label: "Authority" },
   { value: "OWNER", label: "Owner" },
   { value: "ARCHITECT", label: "Architect" },
+  { value: "GOVERNMENT_AGENCY", label: "Gov't Agency" },
 ];
 
 export default function CompaniesList() {

@@ -236,7 +236,7 @@ export function useWinRate() {
           if (r.status === "WON") map[p].won++;
           else map[p].lost++;
         }
-        const pipelines: Pipeline[] = ["PUBLIC_BID", "GC_CHASE", "FACILITY"];
+        const pipelines: Pipeline[] = ["PUBLIC_BID", "GC_CHASE", "FACILITY", "FEDERAL"];
         setData(
           pipelines.map((p) => {
             const { won = 0, lost = 0 } = map[p] ?? {};

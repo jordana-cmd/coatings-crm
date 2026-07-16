@@ -17,11 +17,13 @@ const FILTER_OPTIONS: { value: Pipeline | "ALL"; label: string }[] = [
   { value: "PUBLIC_BID", label: "Public Bid" },
   { value: "GC_CHASE", label: "GC Chase" },
   { value: "FACILITY", label: "Facility" },
+  { value: "FEDERAL", label: "Federal" },
 ];
 const PIPELINE_TAG: Record<string, string> = {
   PUBLIC_BID: "PB",
   GC_CHASE: "GC",
   FACILITY: "FAC",
+  FEDERAL: "FED",
 };
 
 function buildGrid(year: number, month: number) {
@@ -40,7 +42,7 @@ function eventStyle(event: CalendarEvent): { bg: string; text: string } {
     event.kind === "bid_due" &&
     isDisqualified({ ...event.opp, bids: event.bids } as OppWithBids);
   if (dq) return { bg: "bg-dq", text: "text-white line-through opacity-75" };
-  if (event.kind === "walk") {
+  if (event.kind === "walk" || event.kind === "site_visit") {
     return event.mandatory
       ? { bg: "bg-orange-500", text: "text-white" }
       : { bg: "bg-pending", text: "text-white" };
@@ -77,8 +79,9 @@ function DetailBadge({ event }: { event: CalendarEvent }) {
     event.kind === "bid_due" &&
     isDisqualified({ ...event.opp, bids: event.bids } as OppWithBids);
   if (dq) return <span className="text-[10px] font-bold text-dq bg-dq-bg border border-dq-border px-1.5 py-0.5 rounded">DQ</span>;
-  if (event.kind === "walk" && event.mandatory) return <span className="text-[10px] font-medium text-white bg-orange-500 px-1.5 py-0.5 rounded">Mandatory</span>;
-  if (event.kind === "walk") return <span className="text-[10px] font-medium text-white bg-pending px-1.5 py-0.5 rounded">Optional</span>;
+  if ((event.kind === "walk" || event.kind === "site_visit") && event.mandatory) return <span className="text-[10px] font-medium text-white bg-orange-500 px-1.5 py-0.5 rounded">Mandatory</span>;
+  if (event.kind === "walk" || event.kind === "site_visit") return <span className="text-[10px] font-medium text-white bg-pending px-1.5 py-0.5 rounded">Optional</span>;
+  if (event.kind === "response_deadline") return <span className="text-[10px] font-medium text-white bg-brand px-1.5 py-0.5 rounded">Response Due</span>;
   return <span className="text-[10px] font-medium text-white bg-brand px-1.5 py-0.5 rounded">Bid Due</span>;
 }
 

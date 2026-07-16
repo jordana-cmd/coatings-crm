@@ -10,13 +10,13 @@ export interface CalendarEvent {
   id: string;
   date: string; // YYYY-MM-DD
   time: string; // HH:MM
-  kind: "bid_due" | "walk";
+  kind: "bid_due" | "walk" | "response_deadline" | "site_visit";
   oppId: string;
   oppName: string;
   companyName: string | null;
   pipeline: Pipeline;
   mandatory?: boolean;
-  bids: BidsRow;
+  bids?: BidsRow;
   opp: OppRow;
 }
 
@@ -50,6 +50,22 @@ export function useCalendarEvents(year: number, month: number, pipelineFilter: P
       .order("prebid_walk_at", { ascending: true });
 
     const { data: walkData } = await walkQuery;
+
+    // FEDERAL response deadlines in month
+    const { data: fedDeadlineData } = await supabase
+      .from("federal_details")
+      .select("*, opportunities(*, companies(name))")
+      .gte("response_deadline", start)
+      .lt("response_deadline", end)
+      .order("response_deadline", { ascending: true });
+
+    // FEDERAL site visits in month
+    const { data: fedVisitData } = await supabase
+      .from("federal_details")
+      .select("*, opportunities(*, companies(name))")
+      .gte("site_visit_date", start)
+      .lt("site_visit_date", end)
+      .order("site_visit_date", { ascending: true });
 
     const items: CalendarEvent[] = [];
 
@@ -88,6 +104,43 @@ export function useCalendarEvents(year: number, month: number, pipelineFilter: P
         pipeline: opp.pipeline as Pipeline,
         mandatory: row.prebid_walk_mandatory,
         bids: row,
+        opp,
+      });
+    }
+
+    for (const row of fedDeadlineData ?? []) {
+      const opp = row.opportunities as unknown as OppRow & { companies: { name: string } | null };
+      if (!opp) continue;
+      if (pipelineFilter !== "ALL" && opp.pipeline !== pipelineFilter) continue;
+      const dt = new Date(row.response_deadline!);
+      items.push({
+        id: `fed-deadline-${row.id}`,
+        date: dt.toISOString().slice(0, 10),
+        time: dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        kind: "response_deadline",
+        oppId: opp.id,
+        oppName: opp.name,
+        companyName: opp.companies?.name ?? null,
+        pipeline: opp.pipeline as Pipeline,
+        opp,
+      });
+    }
+
+    for (const row of fedVisitData ?? []) {
+      const opp = row.opportunities as unknown as OppRow & { companies: { name: string } | null };
+      if (!opp) continue;
+      if (pipelineFilter !== "ALL" && opp.pipeline !== pipelineFilter) continue;
+      const dt = new Date(row.site_visit_date!);
+      items.push({
+        id: `fed-visit-${row.id}`,
+        date: dt.toISOString().slice(0, 10),
+        time: dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        kind: "site_visit",
+        oppId: opp.id,
+        oppName: opp.name,
+        companyName: opp.companies?.name ?? null,
+        pipeline: opp.pipeline as Pipeline,
+        mandatory: row.site_visit_mandatory,
         opp,
       });
     }
