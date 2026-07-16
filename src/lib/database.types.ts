@@ -657,6 +657,10 @@ export type Database = {
           office: string | null
           opportunity_id: string
           past_performance: string | null
+          pop_city: string | null
+          pop_country: string | null
+          pop_state: string | null
+          pop_zip: string | null
           posted_date: string | null
           pricing_intel: Json | null
           response_deadline: string | null
@@ -707,6 +711,10 @@ export type Database = {
           office?: string | null
           opportunity_id: string
           past_performance?: string | null
+          pop_city?: string | null
+          pop_country?: string | null
+          pop_state?: string | null
+          pop_zip?: string | null
           posted_date?: string | null
           pricing_intel?: Json | null
           response_deadline?: string | null
@@ -757,6 +765,10 @@ export type Database = {
           office?: string | null
           opportunity_id?: string
           past_performance?: string | null
+          pop_city?: string | null
+          pop_country?: string | null
+          pop_state?: string | null
+          pop_zip?: string | null
           posted_date?: string | null
           pricing_intel?: Json | null
           response_deadline?: string | null
@@ -1455,6 +1467,10 @@ export type Database = {
           p_description_text?: string
           p_naics_code?: string
           p_office?: string
+          p_pop_city?: string
+          p_pop_country?: string
+          p_pop_state?: string
+          p_pop_zip?: string
           p_posted_date?: string
           p_response_deadline?: string
           p_sam_notice_id?: string

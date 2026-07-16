@@ -156,6 +156,8 @@ export default function FederalPanel({ fed, federal }: Props) {
           <KvPair label="Posted" value={fmtDate(fed.posted_date)} />
           <KvPair label="Response Deadline" value={fmtDate(fed.response_deadline)} />
           <KvPair label="Magnitude" value={fed.magnitude ?? "—"} />
+          <KvPair label="Place of Performance"
+            value={fed.pop_city && fed.pop_state ? `${fed.pop_city}, ${fed.pop_state}` : fed.pop_state ?? fed.pop_city ?? "—"} />
           <div className="col-span-2 sm:col-span-3">
             <p className="text-[10px] text-label uppercase tracking-wider">Agency</p>
             <p className="text-sm text-heading mt-0.5">{fed.office ?? fed.department ?? "—"}</p>

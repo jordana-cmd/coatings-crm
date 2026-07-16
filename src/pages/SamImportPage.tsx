@@ -15,6 +15,11 @@ function agencyLabel(item: SamPreviewItem): string {
   return first || item.office || "—";
 }
 
+function locationLabel(item: SamPreviewItem): string {
+  if (item.popCity && item.popState) return `${item.popCity}, ${item.popState}`;
+  return item.popState ?? item.popCity ?? "—";
+}
+
 function DescriptionCell({ text }: { text: string | null }) {
   const [expanded, setExpanded] = useState(false);
   if (!text) return <p className="text-xs text-subtle italic">No description available</p>;
@@ -177,6 +182,7 @@ export default function SamImportPage() {
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-label uppercase tracking-wide">Opportunity</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-label uppercase tracking-wide">Agency</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-label uppercase tracking-wide">Location</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-label uppercase tracking-wide">NAICS</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-label uppercase tracking-wide">Set-Aside</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-label uppercase tracking-wide">Posted</th>
@@ -201,6 +207,7 @@ export default function SamImportPage() {
                       <DescriptionCell text={r.descriptionText} />
                     </td>
                     <td className="px-4 py-3 text-label whitespace-nowrap">{agencyLabel(r)}</td>
+                    <td className="px-4 py-3 text-label whitespace-nowrap">{locationLabel(r)}</td>
                     <td className="px-4 py-3 text-label">{r.naicsCode ?? "—"}</td>
                     <td className="px-4 py-3 text-label">{r.setAsideType ?? "—"}</td>
                     <td className="px-4 py-3 text-label whitespace-nowrap">{fmtDate(r.postedDate)}</td>

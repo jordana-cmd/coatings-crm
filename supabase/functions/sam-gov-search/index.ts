@@ -51,6 +51,10 @@ interface PreviewItem {
   contractingOfficer: string | null;
   coEmail: string | null;
   coPhone: string | null;
+  popCity: string | null;
+  popState: string | null;
+  popZip: string | null;
+  popCountry: string | null;
 }
 
 interface RunError {
@@ -136,6 +140,37 @@ function deriveDeptOffice(fullParentPathName: unknown): { department: string | n
   };
 }
 
+/**
+ * SAM.gov placeOfPerformance: city/state/country are {code, name} objects
+ * (state.code is the USPS code), zip is a plain string. Parsed defensively —
+ * some notices omit the field or individual members.
+ */
+function placeOfPerformance(pop: unknown): {
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  country: string | null;
+} {
+  if (!pop || typeof pop !== "object") {
+    return { city: null, state: null, zip: null, country: null };
+  }
+  const p = pop as Record<string, unknown>;
+  const member = (v: unknown, key: "name" | "code"): string | null => {
+    if (typeof v === "string" && v.trim()) return v.trim();
+    if (v && typeof v === "object") {
+      const inner = (v as Record<string, unknown>)[key];
+      if (typeof inner === "string" && inner.trim()) return inner.trim();
+    }
+    return null;
+  };
+  return {
+    city: member(p.city, "name"),
+    state: member(p.state, "code"),
+    zip: typeof p.zip === "string" && p.zip.trim() ? p.zip.trim() : null,
+    country: member(p.country, "code"),
+  };
+}
+
 function firstContact(pointOfContact: unknown): { name: string | null; email: string | null; phone: string | null } {
   if (!Array.isArray(pointOfContact) || pointOfContact.length === 0) {
     return { name: null, email: null, phone: null };
@@ -201,6 +236,10 @@ async function handleImport(
       p_contracting_officer: item.contractingOfficer ?? null,
       p_co_email: item.coEmail ?? null,
       p_co_phone: item.coPhone ?? null,
+      p_pop_city: item.popCity ?? null,
+      p_pop_state: item.popState ?? null,
+      p_pop_zip: item.popZip ?? null,
+      p_pop_country: item.popCountry ?? null,
     });
 
     results.push({
@@ -341,6 +380,7 @@ Deno.serve(async (req) => {
 
       const { department, office } = deriveDeptOffice(item.fullParentPathName);
       const contact = firstContact(item.pointOfContact);
+      const pop = placeOfPerformance(item.placeOfPerformance);
 
       preview.push({
         solicitationNumber: sol,
@@ -357,6 +397,10 @@ Deno.serve(async (req) => {
         contractingOfficer: contact.name,
         coEmail: contact.email,
         coPhone: contact.phone,
+        popCity: pop.city,
+        popState: pop.state,
+        popZip: pop.zip,
+        popCountry: pop.country,
       });
     }
 

@@ -17,6 +17,10 @@ export interface SamPreviewItem {
   contractingOfficer: string | null;
   coEmail: string | null;
   coPhone: string | null;
+  popCity: string | null;
+  popState: string | null;
+  popZip: string | null;
+  popCountry: string | null;
 }
 
 export interface SamImportResult {
