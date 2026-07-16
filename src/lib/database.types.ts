@@ -1445,6 +1445,26 @@ export type Database = {
           id: string
         }[]
       }
+      import_federal_opportunity: {
+        Args: {
+          p_agency_name: string
+          p_co_email?: string
+          p_co_phone?: string
+          p_contracting_officer?: string
+          p_department?: string
+          p_description_text?: string
+          p_naics_code?: string
+          p_office?: string
+          p_posted_date?: string
+          p_response_deadline?: string
+          p_sam_notice_id?: string
+          p_sam_url?: string
+          p_set_aside_type?: string
+          p_solicitation_number: string
+          p_title: string
+        }
+        Returns: string
+      }
       log_gmail_contact_note: {
         Args: {
           p_body: string
