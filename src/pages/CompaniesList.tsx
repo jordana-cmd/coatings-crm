@@ -9,6 +9,7 @@ type CompanyType = Database["public"]["Enums"]["company_type"];
 
 const TYPE_LABELS: Record<CompanyType, string> = {
   GC: "GC", AWARDING_AUTHORITY: "Authority", OWNER: "Owner", ARCHITECT: "Architect",
+  GOVERNMENT_AGENCY: "Government Agency",
 };
 const TYPE_OPTIONS: { value: CompanyType; label: string }[] = [
   { value: "GC", label: "GC" },

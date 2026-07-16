@@ -63,6 +63,7 @@ function makeOppForCadence(
   return {
     ...makeOpp(oppOverrides),
     bids: bidsOverrides !== null ? makeBids(bidsOverrides) : null,
+    federalDetails: null,
     lastContactedAt,
   };
 }

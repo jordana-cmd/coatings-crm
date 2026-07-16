@@ -7,6 +7,7 @@ export const SUBMITTED_STAGE_BY_PIPELINE: Record<Pipeline, string> = {
   PUBLIC_BID: "SUBMITTED",
   GC_CHASE: "CARRIED",
   FACILITY: "PROPOSAL",
+  FEDERAL: "SUBMITTED",
 };
 
 export const ALL_SUBMITTED_STAGES = Object.values(SUBMITTED_STAGE_BY_PIPELINE);

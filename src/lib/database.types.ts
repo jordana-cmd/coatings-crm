@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -435,21 +440,27 @@ export type Database = {
           body: string
           contact_id: string
           created_at: string
+          external_id: string | null
           id: string
+          source: string
         }
         Insert: {
           author_id: string
           body: string
           contact_id: string
           created_at?: string
+          external_id?: string | null
           id?: string
+          source?: string
         }
         Update: {
           author_id?: string
           body?: string
           contact_id?: string
           created_at?: string
+          external_id?: string | null
           id?: string
+          source?: string
         }
         Relationships: [
           {
@@ -618,6 +629,175 @@ export type Database = {
           },
         ]
       }
+      federal_details: {
+        Row: {
+          agency_advantage: number | null
+          award_amount: number | null
+          bid_package_url: string | null
+          bond_amount: number | null
+          bond_arranged: boolean
+          bond_required: boolean
+          capability_statement: string | null
+          co_email: string | null
+          co_phone: string | null
+          contracting_officer: string | null
+          created_at: string
+          department: string | null
+          estimate_mobilization: number | null
+          estimate_sqft_rate: number | null
+          estimate_total: number | null
+          extraction_json: Json | null
+          extraction_status: string
+          geography_fit: number | null
+          id: string
+          magnitude: string | null
+          magnitude_fit: number | null
+          naics_code: string
+          office: string | null
+          opportunity_id: string
+          past_performance: string | null
+          pricing_intel: Json | null
+          response_deadline: string | null
+          sam_notice_id: string | null
+          sam_url: string | null
+          scope_fit: number | null
+          score_reasons: Json | null
+          score_recommendation: string | null
+          scoring_status: string
+          set_aside_advantage: number | null
+          set_aside_type: string | null
+          site_visit_completed: boolean
+          site_visit_date: string | null
+          site_visit_mandatory: boolean
+          solicitation_number: string | null
+          square_footage: number | null
+          submission_method: string | null
+          submitted_at: string | null
+          surface_prep: string | null
+          system_spec: string | null
+          technical_approach: string | null
+          wage_determination: string | null
+        }
+        Insert: {
+          agency_advantage?: number | null
+          award_amount?: number | null
+          bid_package_url?: string | null
+          bond_amount?: number | null
+          bond_arranged?: boolean
+          bond_required?: boolean
+          capability_statement?: string | null
+          co_email?: string | null
+          co_phone?: string | null
+          contracting_officer?: string | null
+          created_at?: string
+          department?: string | null
+          estimate_mobilization?: number | null
+          estimate_sqft_rate?: number | null
+          estimate_total?: number | null
+          extraction_json?: Json | null
+          extraction_status?: string
+          geography_fit?: number | null
+          id?: string
+          magnitude?: string | null
+          magnitude_fit?: number | null
+          naics_code?: string
+          office?: string | null
+          opportunity_id: string
+          past_performance?: string | null
+          pricing_intel?: Json | null
+          response_deadline?: string | null
+          sam_notice_id?: string | null
+          sam_url?: string | null
+          scope_fit?: number | null
+          score_reasons?: Json | null
+          score_recommendation?: string | null
+          scoring_status?: string
+          set_aside_advantage?: number | null
+          set_aside_type?: string | null
+          site_visit_completed?: boolean
+          site_visit_date?: string | null
+          site_visit_mandatory?: boolean
+          solicitation_number?: string | null
+          square_footage?: number | null
+          submission_method?: string | null
+          submitted_at?: string | null
+          surface_prep?: string | null
+          system_spec?: string | null
+          technical_approach?: string | null
+          wage_determination?: string | null
+        }
+        Update: {
+          agency_advantage?: number | null
+          award_amount?: number | null
+          bid_package_url?: string | null
+          bond_amount?: number | null
+          bond_arranged?: boolean
+          bond_required?: boolean
+          capability_statement?: string | null
+          co_email?: string | null
+          co_phone?: string | null
+          contracting_officer?: string | null
+          created_at?: string
+          department?: string | null
+          estimate_mobilization?: number | null
+          estimate_sqft_rate?: number | null
+          estimate_total?: number | null
+          extraction_json?: Json | null
+          extraction_status?: string
+          geography_fit?: number | null
+          id?: string
+          magnitude?: string | null
+          magnitude_fit?: number | null
+          naics_code?: string
+          office?: string | null
+          opportunity_id?: string
+          past_performance?: string | null
+          pricing_intel?: Json | null
+          response_deadline?: string | null
+          sam_notice_id?: string | null
+          sam_url?: string | null
+          scope_fit?: number | null
+          score_reasons?: Json | null
+          score_recommendation?: string | null
+          scoring_status?: string
+          set_aside_advantage?: number | null
+          set_aside_type?: string | null
+          site_visit_completed?: boolean
+          site_visit_date?: string | null
+          site_visit_mandatory?: boolean
+          solicitation_number?: string | null
+          square_footage?: number | null
+          submission_method?: string | null
+          submitted_at?: string | null
+          surface_prep?: string | null
+          system_spec?: string | null
+          technical_approach?: string | null
+          wage_determination?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "federal_details_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "federal_details_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "v_closing_this_month"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "federal_details_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "v_stale_leaks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           created_at: string
@@ -657,6 +837,21 @@ export type Database = {
           pipeline?: string | null
           target_value?: number
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      internal_config: {
+        Row: {
+          key: string
+          value: string
+        }
+        Insert: {
+          key: string
+          value: string
+        }
+        Update: {
+          key?: string
+          value?: string
         }
         Relationships: []
       }
@@ -885,6 +1080,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sam_gov_sync_log: {
+        Row: {
+          errors: Json | null
+          id: string
+          naics_codes: string[]
+          new_imported: number
+          results_found: number
+          set_asides: string[] | null
+          synced_at: string
+          synced_by: string
+        }
+        Insert: {
+          errors?: Json | null
+          id?: string
+          naics_codes: string[]
+          new_imported?: number
+          results_found?: number
+          set_asides?: string[] | null
+          synced_at?: string
+          synced_by: string
+        }
+        Update: {
+          errors?: Json | null
+          id?: string
+          naics_codes?: string[]
+          new_imported?: number
+          results_found?: number
+          set_asides?: string[] | null
+          synced_at?: string
+          synced_by?: string
+        }
+        Relationships: []
+      }
+      usaspending_cache: {
+        Row: {
+          agency: string | null
+          avg_award: number | null
+          award_count: number | null
+          awards_data: Json
+          cached_at: string
+          id: string
+          median_award: number | null
+          naics_code: string
+          state: string | null
+        }
+        Insert: {
+          agency?: string | null
+          avg_award?: number | null
+          award_count?: number | null
+          awards_data: Json
+          cached_at?: string
+          id?: string
+          median_award?: number | null
+          naics_code: string
+          state?: string | null
+        }
+        Update: {
+          agency?: string | null
+          avg_award?: number | null
+          award_count?: number | null
+          awards_data?: Json
+          cached_at?: string
+          id?: string
+          median_award?: number | null
+          naics_code?: string
+          state?: string | null
+        }
+        Relationships: []
       }
       user_pins: {
         Row: {
@@ -1166,6 +1430,22 @@ export type Database = {
       }
       current_app_role: { Args: never; Returns: string }
       delete_opportunity: { Args: { p_opp_id: string }; Returns: undefined }
+      find_contacts_by_email: {
+        Args: { p_email: string; p_secret: string }
+        Returns: {
+          id: string
+        }[]
+      }
+      log_gmail_contact_note: {
+        Args: {
+          p_body: string
+          p_contact_id: string
+          p_created_at: string
+          p_external_id: string
+          p_secret: string
+        }
+        Returns: undefined
+      }
       mark_complete: {
         Args: {
           p_completed_at?: string
@@ -1184,7 +1464,12 @@ export type Database = {
     Enums: {
       activity_type: "CALL" | "VISIT" | "PREBID_WALK" | "EMAIL" | "NOTE"
       app_role: "rep" | "owner" | "admin"
-      company_type: "GC" | "AWARDING_AUTHORITY" | "OWNER" | "ARCHITECT"
+      company_type:
+        | "GC"
+        | "AWARDING_AUTHORITY"
+        | "OWNER"
+        | "ARCHITECT"
+        | "GOVERNMENT_AGENCY"
       contact_role:
         | "PM"
         | "ESTIMATOR"
@@ -1193,7 +1478,7 @@ export type Database = {
         | "PURCHASING"
         | "SPEC_WRITER"
       opp_status: "OPEN" | "WON" | "LOST" | "NURTURE" | "DISQUALIFIED"
-      pipeline_type: "PUBLIC_BID" | "GC_CHASE" | "FACILITY"
+      pipeline_type: "PUBLIC_BID" | "GC_CHASE" | "FACILITY" | "FEDERAL"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1326,7 +1611,13 @@ export const Constants = {
     Enums: {
       activity_type: ["CALL", "VISIT", "PREBID_WALK", "EMAIL", "NOTE"],
       app_role: ["rep", "owner", "admin"],
-      company_type: ["GC", "AWARDING_AUTHORITY", "OWNER", "ARCHITECT"],
+      company_type: [
+        "GC",
+        "AWARDING_AUTHORITY",
+        "OWNER",
+        "ARCHITECT",
+        "GOVERNMENT_AGENCY",
+      ],
       contact_role: [
         "PM",
         "ESTIMATOR",
@@ -1336,8 +1627,7 @@ export const Constants = {
         "SPEC_WRITER",
       ],
       opp_status: ["OPEN", "WON", "LOST", "NURTURE", "DISQUALIFIED"],
-      pipeline_type: ["PUBLIC_BID", "GC_CHASE", "FACILITY"],
+      pipeline_type: ["PUBLIC_BID", "GC_CHASE", "FACILITY", "FEDERAL"],
     },
   },
 } as const
-
