@@ -1,12 +1,12 @@
 import { canAdvance } from "../../lib/gates/engine";
 import { friendlyLabel } from "../../lib/gates/labels";
-import { STAGE_LABELS, PUBLIC_BID_ACTIVE, GC_CHASE_ACTIVE, FACILITY_ACTIVE } from "../../lib/pipelines";
+import { STAGE_LABELS, PUBLIC_BID_ACTIVE, GC_CHASE_ACTIVE, FACILITY_ACTIVE, FEDERAL_ACTIVE } from "../../lib/pipelines";
 import type { Pipeline } from "../../lib/pipelines";
-import type { OppWithBids } from "../../lib/gates/types";
+import type { OppForGates } from "../../lib/gates/types";
 import { CheckCircle2, Circle } from "lucide-react";
 
 interface Props {
-  opp: OppWithBids;
+  opp: OppForGates;
   onAdvance: (targetStage: string) => Promise<void>;
   advancing: boolean;
   advanceError: string | null;
@@ -16,11 +16,12 @@ function getNextStage(pipeline: Pipeline, currentStage: string): string | null {
   const active: readonly string[] =
     pipeline === "PUBLIC_BID" ? PUBLIC_BID_ACTIVE
     : pipeline === "GC_CHASE" ? GC_CHASE_ACTIVE
+    : pipeline === "FEDERAL" ? FEDERAL_ACTIVE
     : FACILITY_ACTIVE;
   const idx = active.indexOf(currentStage);
   if (idx === -1) return null;
   if (idx + 1 < active.length) return active[idx + 1];
-  if (pipeline === "PUBLIC_BID") return "AWARDED";
+  if (pipeline === "PUBLIC_BID" || pipeline === "FEDERAL") return "AWARDED";
   return "WON";
 }
 
@@ -36,7 +37,8 @@ export default function GateChecklist({ opp, onAdvance, advancing, advanceError 
     );
   }
 
-  const isSubmitted = opp.stage === "SUBMITTED" && pipeline === "PUBLIC_BID";
+  const isSubmitted =
+    opp.stage === "SUBMITTED" && (pipeline === "PUBLIC_BID" || pipeline === "FEDERAL");
   const gateTarget = isSubmitted ? "AWARDED" : nextStage;
 
   let result;

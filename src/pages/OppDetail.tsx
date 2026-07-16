@@ -10,6 +10,9 @@ import type { Pipeline } from "../lib/pipelines";
 import StageTracker from "../components/gates/StageTracker";
 import GateChecklist from "../components/gates/GateChecklist";
 import QuickLogFAB from "../components/quick-log/QuickLogFAB";
+import FederalPanel from "../components/federal/FederalPanel";
+import { useFederalDetails } from "../hooks/useFederalDetails";
+import type { OppForGates } from "../lib/gates/types";
 
 import type { Database } from "../lib/database.types";
 import { useBidQuotes } from "../hooks/useBidQuotes";
@@ -492,8 +495,10 @@ export default function OppDetail() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const isPublicBid = opp?.pipeline === "PUBLIC_BID";
+  const isFederal = opp?.pipeline === "FEDERAL";
   const bidQuotes = useBidQuotes(isPublicBid ? id : undefined);
   const oppDocs = useOppDocuments(id);
+  const federal = useFederalDetails(id ?? "", refetch);
 
   if (loading) {
     return (
@@ -556,7 +561,7 @@ export default function OppDetail() {
       </div>
 
       {/* Gate checklist */}
-      <GateChecklist opp={opp} onAdvance={advance} advancing={advancing} advanceError={advanceError} />
+      <GateChecklist opp={opp as OppForGates} onAdvance={advance} advancing={advancing} advanceError={advanceError} />
 
       {saveError && (
         <div className="bg-dq-bg border border-dq-border rounded-xl p-3 text-sm text-dq text-center">{saveError}</div>
@@ -565,61 +570,81 @@ export default function OppDetail() {
       {/* Deal Management */}
       <DealManagement opp={opp} updateOppField={updateOppField} isSaving={isSaving} />
 
-      {/* Bid Details */}
-      <div className="bg-card rounded-xl shadow-sm p-5">
-        <h3 className="text-xs font-semibold text-label uppercase tracking-wide mb-2">Bid Details</h3>
-        <div className="divide-y divide-card-border">
-          <NumberInput label="Amount ($)" value={opp.amount} placeholder="Bid amount"
-            onSave={(v) => updateOppField("amount", v)} isSaving={isSaving("amount")} />
-          <GrossProfitInput amount={opp.amount} grossProfitPct={opp.gross_profit_pct}
-            onSave={(v) => updateOppField("gross_profit_pct", v)} isSaving={isSaving("gross_profit_pct")} />
-          <TextInput label="Plans Link" value={bids.plans_link ?? ""} placeholder="https://planroom.com/..."
-            onSave={(v) => updateBidsField("plans_link", v || null)} isSaving={isSaving("plans_link")} type="url" />
-          <Toggle label="Go / No-Go" value={bids.go_no_go}
-            onToggle={(v) => updateBidsField("go_no_go", v)} isSaving={isSaving("go_no_go")} />
-          <Toggle label="Addenda Acknowledged" value={bids.addenda_acknowledged}
-            onToggle={(v) => updateBidsField("addenda_acknowledged", v)} isSaving={isSaving("addenda_acknowledged")} />
-          <TextInput label="Estimate File URL" value={bids.estimate_file_url ?? ""}
-            placeholder="https://storage/estimate.pdf"
-            onSave={(v) => updateBidsField("estimate_file_url", v || null)} isSaving={isSaving("estimate_file_url")} type="url" />
-          <DateInput label="Bid Due Date" value={bids.bid_due_at}
-            onSave={(v) => updateBidsField("bid_due_at", v)} isSaving={isSaving("bid_due_at")} />
-        </div>
-      </div>
+      {/* FEDERAL: SAM.gov solicitation, AI extraction/scoring, estimate */}
+      {isFederal && opp.federal_details && (
+        <>
+          <FederalPanel fed={opp.federal_details} federal={federal} />
+          <div className="bg-card rounded-xl shadow-sm p-5">
+            <h3 className="text-xs font-semibold text-label uppercase tracking-wide mb-2">Deal Numbers</h3>
+            <div className="divide-y divide-card-border">
+              <NumberInput label="Amount ($)" value={opp.amount} placeholder="Bid amount"
+                onSave={(v) => updateOppField("amount", v)} isSaving={isSaving("amount")} />
+              <GrossProfitInput amount={opp.amount} grossProfitPct={opp.gross_profit_pct}
+                onSave={(v) => updateOppField("gross_profit_pct", v)} isSaving={isSaving("gross_profit_pct")} />
+            </div>
+          </div>
+        </>
+      )}
 
-      {/* Walk */}
-      <div className="bg-card rounded-xl shadow-sm p-5">
-        <h3 className="text-xs font-semibold text-label uppercase tracking-wide mb-2">Pre-Bid Walk</h3>
-        <div className="divide-y divide-card-border">
-          <Toggle label="Walk Mandatory" value={bids.prebid_walk_mandatory}
-            onToggle={(v) => updateBidsField("prebid_walk_mandatory", v)} isSaving={isSaving("prebid_walk_mandatory")} />
-          {bids.prebid_walk_mandatory && (
-            <>
-              <DateInput label="Walk Date" value={bids.prebid_walk_at}
-                onSave={(v) => updateBidsField("prebid_walk_at", v)} isSaving={isSaving("prebid_walk_at")} />
-              <Toggle label="Walk Completed" value={bids.prebid_walk_completed}
-                onToggle={(v) => updateBidsField("prebid_walk_completed", v)} isSaving={isSaving("prebid_walk_completed")} />
-            </>
-          )}
-        </div>
-      </div>
+      {/* Bid Details / Walk / Bond — pipelines with a bids row */}
+      {bids && (
+        <>
+          <div className="bg-card rounded-xl shadow-sm p-5">
+            <h3 className="text-xs font-semibold text-label uppercase tracking-wide mb-2">Bid Details</h3>
+            <div className="divide-y divide-card-border">
+              <NumberInput label="Amount ($)" value={opp.amount} placeholder="Bid amount"
+                onSave={(v) => updateOppField("amount", v)} isSaving={isSaving("amount")} />
+              <GrossProfitInput amount={opp.amount} grossProfitPct={opp.gross_profit_pct}
+                onSave={(v) => updateOppField("gross_profit_pct", v)} isSaving={isSaving("gross_profit_pct")} />
+              <TextInput label="Plans Link" value={bids.plans_link ?? ""} placeholder="https://planroom.com/..."
+                onSave={(v) => updateBidsField("plans_link", v || null)} isSaving={isSaving("plans_link")} type="url" />
+              <Toggle label="Go / No-Go" value={bids.go_no_go}
+                onToggle={(v) => updateBidsField("go_no_go", v)} isSaving={isSaving("go_no_go")} />
+              <Toggle label="Addenda Acknowledged" value={bids.addenda_acknowledged}
+                onToggle={(v) => updateBidsField("addenda_acknowledged", v)} isSaving={isSaving("addenda_acknowledged")} />
+              <TextInput label="Estimate File URL" value={bids.estimate_file_url ?? ""}
+                placeholder="https://storage/estimate.pdf"
+                onSave={(v) => updateBidsField("estimate_file_url", v || null)} isSaving={isSaving("estimate_file_url")} type="url" />
+              <DateInput label="Bid Due Date" value={bids.bid_due_at}
+                onSave={(v) => updateBidsField("bid_due_at", v)} isSaving={isSaving("bid_due_at")} />
+            </div>
+          </div>
 
-      {/* Bond */}
-      <div className="bg-card rounded-xl shadow-sm p-5">
-        <h3 className="text-xs font-semibold text-label uppercase tracking-wide mb-2">Bond</h3>
-        <div className="divide-y divide-card-border">
-          <Toggle label="Bond Required" value={bids.bond_required}
-            onToggle={(v) => updateBidsField("bond_required", v)} isSaving={isSaving("bond_required")} />
-          {bids.bond_required && (
-            <>
-              <NumberInput label="Bond Amount ($)" value={bids.bond_amount} placeholder="Bond amount"
-                onSave={(v) => updateBidsField("bond_amount", v)} isSaving={isSaving("bond_amount")} />
-              <Toggle label="Bond Arranged" value={bids.bond_arranged}
-                onToggle={(v) => updateBidsField("bond_arranged", v)} isSaving={isSaving("bond_arranged")} />
-            </>
-          )}
-        </div>
-      </div>
+          {/* Walk */}
+          <div className="bg-card rounded-xl shadow-sm p-5">
+            <h3 className="text-xs font-semibold text-label uppercase tracking-wide mb-2">Pre-Bid Walk</h3>
+            <div className="divide-y divide-card-border">
+              <Toggle label="Walk Mandatory" value={bids.prebid_walk_mandatory}
+                onToggle={(v) => updateBidsField("prebid_walk_mandatory", v)} isSaving={isSaving("prebid_walk_mandatory")} />
+              {bids.prebid_walk_mandatory && (
+                <>
+                  <DateInput label="Walk Date" value={bids.prebid_walk_at}
+                    onSave={(v) => updateBidsField("prebid_walk_at", v)} isSaving={isSaving("prebid_walk_at")} />
+                  <Toggle label="Walk Completed" value={bids.prebid_walk_completed}
+                    onToggle={(v) => updateBidsField("prebid_walk_completed", v)} isSaving={isSaving("prebid_walk_completed")} />
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Bond */}
+          <div className="bg-card rounded-xl shadow-sm p-5">
+            <h3 className="text-xs font-semibold text-label uppercase tracking-wide mb-2">Bond</h3>
+            <div className="divide-y divide-card-border">
+              <Toggle label="Bond Required" value={bids.bond_required}
+                onToggle={(v) => updateBidsField("bond_required", v)} isSaving={isSaving("bond_required")} />
+              {bids.bond_required && (
+                <>
+                  <NumberInput label="Bond Amount ($)" value={bids.bond_amount} placeholder="Bond amount"
+                    onSave={(v) => updateBidsField("bond_amount", v)} isSaving={isSaving("bond_amount")} />
+                  <Toggle label="Bond Arranged" value={bids.bond_arranged}
+                    onToggle={(v) => updateBidsField("bond_arranged", v)} isSaving={isSaving("bond_arranged")} />
+                </>
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* GCs Quoted — PUBLIC_BID only */}
       {isPublicBid && <GCsQuotedCard bidQuotes={bidQuotes} />}

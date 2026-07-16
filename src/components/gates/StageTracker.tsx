@@ -1,14 +1,14 @@
 import { stagesFor, STAGE_LABELS } from "../../lib/pipelines";
 import type { Pipeline } from "../../lib/pipelines";
-import type { OppWithBids } from "../../lib/gates/types";
+import type { OppRow, BidsRow, OppWithBids } from "../../lib/gates/types";
 import { isDisqualified } from "../../lib/gates/disqualification";
 
 interface Props {
-  opp: OppWithBids;
+  opp: OppRow & { bids?: BidsRow | null };
 }
 
 export default function StageTracker({ opp }: Props) {
-  if (opp.pipeline === "PUBLIC_BID" && isDisqualified(opp)) {
+  if (opp.pipeline === "PUBLIC_BID" && opp.bids && isDisqualified(opp as OppWithBids)) {
     return (
       <div className="rounded-xl bg-dq-bg border-2 border-dq-border p-4 text-center">
         <p className="text-dq font-bold text-lg">DISQUALIFIED</p>

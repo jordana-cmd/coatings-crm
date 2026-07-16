@@ -1,11 +1,27 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import type { OppWithBids } from "../lib/gates/types";
+import type { OppRow, BidsRow, FacilityRow, FederalRow } from "../lib/gates/types";
 
-type OppDetail = OppWithBids & { company_name: string | null };
+export type OppDetailData = OppRow & {
+  bids: BidsRow | null;
+  facility_details: FacilityRow | null;
+  federal_details: FederalRow | null;
+  company_name: string | null;
+};
+
+/** Which extension row each pipeline requires (extension-row existence rule). */
+function requiredExtension(pipeline: string): "bids" | "facility_details" | "federal_details" {
+  if (pipeline === "FACILITY") return "facility_details";
+  if (pipeline === "FEDERAL") return "federal_details";
+  return "bids";
+}
+
+function unwrap<T>(v: T | T[] | null): T | null {
+  return Array.isArray(v) ? (v[0] ?? null) : v;
+}
 
 export function useOpportunity(id: string | undefined) {
-  const [data, setData] = useState<OppDetail | null>(null);
+  const [data, setData] = useState<OppDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,7 +31,7 @@ export function useOpportunity(id: string | undefined) {
 
     const { data: opp, error: err } = await supabase
       .from("opportunities")
-      .select("*, bids(*), companies(name)")
+      .select("*, bids(*), facility_details(*), federal_details(*), companies(name)")
       .eq("id", id)
       .single();
 
@@ -31,21 +47,23 @@ export function useOpportunity(id: string | undefined) {
       return;
     }
 
-    // Supabase returns bids as an array (1:1 via unique FK) — unwrap
-    const bidsRow = Array.isArray(opp.bids) ? opp.bids[0] : opp.bids;
-    const companyName = (opp.companies as { name: string } | null)?.name ?? null;
+    // Supabase returns 1:1 extension rows as arrays (unique FK) — unwrap
+    const result: OppDetailData = {
+      ...opp,
+      bids: unwrap(opp.bids as BidsRow | BidsRow[] | null),
+      facility_details: unwrap(opp.facility_details as FacilityRow | FacilityRow[] | null),
+      federal_details: unwrap(opp.federal_details as FederalRow | FederalRow[] | null),
+      company_name: (opp.companies as { name: string } | null)?.name ?? null,
+    } as OppDetailData;
 
-    if (!bidsRow) {
-      setError("Bids extension row missing");
+    const required = requiredExtension(result.pipeline);
+    if (!result[required]) {
+      setError(`${required} extension row missing`);
       setLoading(false);
       return;
     }
 
-    setData({
-      ...opp,
-      bids: bidsRow,
-      company_name: companyName,
-    } as OppDetail);
+    setData(result);
     setError(null);
     setLoading(false);
   }, [id]);
