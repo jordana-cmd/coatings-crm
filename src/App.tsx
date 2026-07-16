@@ -13,6 +13,7 @@ import ContactsList from "./pages/ContactsList";
 import ContactDetail from "./pages/ContactDetail";
 import ReportsPage from "./pages/ReportsPage";
 import GoalsPage from "./pages/GoalsPage";
+import SamImportPage from "./pages/SamImportPage";
 
 function App() {
   return (
@@ -38,6 +39,16 @@ function App() {
               <ProtectedRoute>
                 <AppShell>
                   <OppsList />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/opportunities/sam-import"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <SamImportPage />
                 </AppShell>
               </ProtectedRoute>
             }

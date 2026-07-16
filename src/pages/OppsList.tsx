@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   DndContext,
   DragOverlay,
@@ -222,7 +222,12 @@ function Toast({ title, reasons, onClose }: { title: string; reasons: string[]; 
 
 export default function OppsList() {
   const { opps, loading, error, create, refetch } = useOpportunities();
-  const [pipeline, setPipeline] = useState<Pipeline>("PUBLIC_BID");
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialPipeline = searchParams.get("pipeline");
+  const [pipeline, setPipeline] = useState<Pipeline>(
+    PIPELINES.includes(initialPipeline as Pipeline) ? (initialPipeline as Pipeline) : "PUBLIC_BID"
+  );
   const [showCreate, setShowCreate] = useState(false);
   const [activeOpp, setActiveOpp] = useState<Opp | null>(null);
   const [toast, setToast] = useState<{ title: string; reasons: string[] } | null>(null);
@@ -322,6 +327,15 @@ export default function OppsList() {
               </button>
             ))}
           </div>
+
+          {pipeline === "FEDERAL" && (
+            <button
+              onClick={() => navigate("/opportunities/sam-import")}
+              className="rounded-lg border border-card-border bg-card text-heading px-4 py-2 text-sm font-medium hover:bg-gray-50"
+            >
+              Pull SAM.gov
+            </button>
+          )}
 
           <button
             onClick={() => setShowCreate(true)}
