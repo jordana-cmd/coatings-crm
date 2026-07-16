@@ -23,6 +23,7 @@ import {
   PUBLIC_BID_ACTIVE,
   GC_CHASE_ACTIVE,
   FACILITY_ACTIVE,
+  FEDERAL_ACTIVE,
   type Pipeline,
 } from "../lib/pipelines";
 import type { Database } from "../lib/database.types";
@@ -32,14 +33,15 @@ type Opp = Database["public"]["Tables"]["opportunities"]["Row"] & {
   company_name: string | null;
 };
 
-const PIPELINES: Pipeline[] = ["PUBLIC_BID", "GC_CHASE", "FACILITY"];
+const PIPELINES: Pipeline[] = ["PUBLIC_BID", "GC_CHASE", "FACILITY", "FEDERAL"];
 
 function getActiveStages(pipeline: Pipeline): readonly string[] {
-  return pipeline === "PUBLIC_BID"
-    ? PUBLIC_BID_ACTIVE
-    : pipeline === "GC_CHASE"
-      ? GC_CHASE_ACTIVE
-      : FACILITY_ACTIVE;
+  switch (pipeline) {
+    case "PUBLIC_BID": return PUBLIC_BID_ACTIVE;
+    case "GC_CHASE": return GC_CHASE_ACTIVE;
+    case "FACILITY": return FACILITY_ACTIVE;
+    case "FEDERAL": return FEDERAL_ACTIVE;
+  }
 }
 
 function getTerminalStages(pipeline: Pipeline): string[] {
@@ -62,6 +64,7 @@ function isValidDrop(pipeline: Pipeline, fromStage: string, toStage: string): bo
     if (pipeline === "PUBLIC_BID" && fromStage === "SUBMITTED" && (toStage === "AWARDED" || toStage === "LOST")) return true;
     if (pipeline === "GC_CHASE" && fromStage === "GC_AWARDED" && (toStage === "WON" || toStage === "LOST")) return true;
     if (pipeline === "FACILITY" && fromStage === "APPROVAL" && (toStage === "WON" || toStage === "LOST" || toStage === "NURTURE")) return true;
+    if (pipeline === "FEDERAL" && fromStage === "SUBMITTED" && (toStage === "AWARDED" || toStage === "LOST")) return true;
   }
   return false;
 }
@@ -353,6 +356,7 @@ export default function OppsList() {
       {/* Create form */}
       {showCreate && (
         <CreateOppForm
+          pipeline={pipeline}
           onSubmit={async (input) => {
             const result = await create(input);
             if (!result.error) setShowCreate(false);

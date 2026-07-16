@@ -13,9 +13,17 @@ export interface NextAction {
   urgency: Urgency;
 }
 
-/** An opportunity with its bids extension (for milestone dates). */
+/** Minimal federal_details fields needed for cadence resolution. */
+export interface FederalCadenceFields {
+  site_visit_date: string | null;
+  site_visit_completed: boolean;
+  response_deadline: string | null;
+}
+
+/** An opportunity with its extension rows (for milestone dates). */
 export interface OppForCadence extends OppRow {
   bids: BidsRow | null;
+  federalDetails: FederalCadenceFields | null;
   lastContactedAt: string | null; // most recent activity/note timestamp
 }
 

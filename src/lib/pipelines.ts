@@ -32,20 +32,33 @@ export const FACILITY_STAGES = [
   "NURTURE",
 ] as const;
 
+export const FEDERAL_STAGES = [
+  "INTAKE",
+  "EXTRACTION",
+  "SCORING",
+  "ESTIMATING",
+  "SUBMITTED",
+  "AWARDED",
+  "LOST",
+] as const;
+
 export type PublicBidStage = (typeof PUBLIC_BID_STAGES)[number];
 export type GcChaseStage = (typeof GC_CHASE_STAGES)[number];
 export type FacilityStage = (typeof FACILITY_STAGES)[number];
-export type Stage = PublicBidStage | GcChaseStage | FacilityStage;
+export type FederalStage = (typeof FEDERAL_STAGES)[number];
+export type Stage = PublicBidStage | GcChaseStage | FacilityStage | FederalStage;
 
 // Ordered active stages (excludes terminal outcomes) for pipeline progress bars
 export const PUBLIC_BID_ACTIVE = ["SOURCED", "ESTIMATING", "SUBMITTED", "AWARDED"] as const;
 export const GC_CHASE_ACTIVE = ["ON_THE_LIST", "QUOTING", "CARRIED", "GC_AWARDED", "WON"] as const;
 export const FACILITY_ACTIVE = ["ENGAGED", "SITE_WALK", "PROPOSAL", "APPROVAL", "WON"] as const;
+export const FEDERAL_ACTIVE = ["INTAKE", "EXTRACTION", "SCORING", "ESTIMATING", "SUBMITTED", "AWARDED"] as const;
 
 const STAGE_ARRAYS: Record<Pipeline, readonly string[]> = {
   PUBLIC_BID: PUBLIC_BID_STAGES,
   GC_CHASE: GC_CHASE_STAGES,
   FACILITY: FACILITY_STAGES,
+  FEDERAL: FEDERAL_STAGES,
 };
 
 export function stagesFor(pipeline: Pipeline): readonly string[] {
@@ -66,6 +79,9 @@ export const STAGE_LABELS: Record<string, string> = {
   SITE_WALK: "Site Walk",
   PROPOSAL: "Proposal",
   APPROVAL: "Approval",
+  INTAKE: "Intake",
+  EXTRACTION: "Extraction",
+  SCORING: "Scoring",
   WON: "Won",
   LOST: "Lost",
   NURTURE: "Nurture",
@@ -75,6 +91,7 @@ export const PIPELINE_LABELS: Record<Pipeline, string> = {
   PUBLIC_BID: "Public Bid",
   GC_CHASE: "GC Chase",
   FACILITY: "Facility",
+  FEDERAL: "Federal",
 };
 
 // CRITICAL — PUBLIC_BID AWARDED ↔ STATUS coupling:
