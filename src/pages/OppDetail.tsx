@@ -16,6 +16,8 @@ import type { OppForGates } from "../lib/gates/types";
 
 import type { Database } from "../lib/database.types";
 import { useBidQuotes } from "../hooks/useBidQuotes";
+import { useCompetitorBids } from "../hooks/useCompetitorBids";
+import CompetitorBidsCard from "../components/opps/CompetitorBidsCard";
 import { useOppDocuments, type OppDocument } from "../hooks/useOppDocuments";
 import { supabase } from "../lib/supabase";
 import { Trash2 } from "lucide-react";
@@ -498,6 +500,7 @@ export default function OppDetail() {
   const isFederal = opp?.pipeline === "FEDERAL";
   const bidQuotes = useBidQuotes(isPublicBid ? id : undefined);
   const oppDocs = useOppDocuments(id);
+  const competitorBids = useCompetitorBids(id);
   const federal = useFederalDetails(id ?? "", refetch);
 
   if (loading) {
@@ -662,6 +665,12 @@ export default function OppDetail() {
             tracking aren&rsquo;t set up.
           </p>
         </div>
+      )}
+
+      {/* Competitor Bids — Lost deals only. advance_stage couples status to
+          stage, but StageTracker keys off stage, so match that. */}
+      {opp.stage === "LOST" && (
+        <CompetitorBidsCard competitorBids={competitorBids} ourAmount={opp.amount} />
       )}
 
       {/* GCs Quoted — PUBLIC_BID only */}

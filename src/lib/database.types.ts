@@ -434,6 +434,61 @@ export type Database = {
           },
         ]
       }
+      competitor_bids: {
+        Row: {
+          amount: number
+          bidder_name: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_winner: boolean
+          notes: string | null
+          opportunity_id: string
+        }
+        Insert: {
+          amount: number
+          bidder_name: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_winner?: boolean
+          notes?: string | null
+          opportunity_id: string
+        }
+        Update: {
+          amount?: number
+          bidder_name?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_winner?: boolean
+          notes?: string | null
+          opportunity_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitor_bids_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competitor_bids_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "v_closing_this_month"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competitor_bids_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "v_stale_leaks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_notes: {
         Row: {
           author_id: string
@@ -1498,6 +1553,10 @@ export type Database = {
           p_notes?: string
           p_opp_id: string
         }
+        Returns: undefined
+      }
+      set_competitor_bid_winner: {
+        Args: { p_bid_id: string }
         Returns: undefined
       }
       undo_complete: { Args: { p_opp_id: string }; Returns: undefined }
