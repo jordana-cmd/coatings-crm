@@ -1,4 +1,4 @@
-import type { GateResult, OppForGates, OppWithBids } from "./types";
+import type { BidsRow, GateResult, OppForGates, OppRow, OppWithBids } from "./types";
 import { getPublicBidGate } from "./public-bid";
 import { PUBLIC_BID_ACTIVE, GC_CHASE_ACTIVE, FACILITY_ACTIVE, FEDERAL_ACTIVE } from "../pipelines";
 import type { Pipeline } from "../pipelines";
@@ -78,7 +78,17 @@ export function canAdvance(opp: OppForGates, targetStage: string): GateResult {
       if (!gate) {
         return { allowed: true, unmet: [] };
       }
-      return gate(opp as OppWithBids);
+      // Older records can lack their bids row entirely. The gate predicates
+      // dereference opp.bids, so report it as an unmet condition rather than
+      // throwing — the opportunity still renders, it just can't advance.
+      const withBids = opp as OppRow & { bids: BidsRow | null };
+      if (!withBids.bids) {
+        return {
+          allowed: false,
+          unmet: [{ field: "bids", label: "Bid details not set up for this opportunity" }],
+        };
+      }
+      return gate(withBids as OppWithBids);
     }
     case "GC_CHASE":
       throw new Error("GC_CHASE gate predicates not yet implemented");

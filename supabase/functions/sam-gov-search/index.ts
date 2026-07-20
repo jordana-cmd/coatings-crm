@@ -8,7 +8,11 @@
 
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.108.2";
 
-const SAM_GOV_BASE = "https://api.sam.gov/prod/opportunities/v2/search";
+// Production v2 search has no "/prod/" path segment — that segment only
+// exists on the deprecated v1 path and the api-alpha.sam.gov test host.
+// (Root cause of the 2026-07 zero-results incident: this URL used to have
+// "/prod/" here, which SAM.gov rejected with HTTP 400 on every query.)
+const SAM_GOV_BASE = "https://api.sam.gov/opportunities/v2/search";
 
 interface SamGovQuery {
   ncode: string;
@@ -27,6 +31,10 @@ const FLOORING_QUERIES: SamGovQuery[] = [
   { ncode: "238390", title: "coating" },
 ];
 
+// SAM.gov's documented ncode param is max 6 digits — this 2-digit sector
+// code is unverified against that constraint and may itself 400 even with
+// the URL fixed. Flagged, not changed here: not the reported failure since
+// the 6-digit FLOORING_QUERIES failed identically before the URL fix.
 const SDVOSB_QUERIES: SamGovQuery[] = [
   { ncode: "23", typeOfSetAside: "SDVOSBC" },
   { ncode: "23", typeOfSetAside: "SDVOSBS" },
@@ -59,6 +67,8 @@ interface PreviewItem {
 
 interface RunError {
   context: string;
+  query: string | null;
+  samStatus: number | null;
   error: string;
 }
 
@@ -74,10 +84,21 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+/** Structured, single-line JSON logs. The only logging path in this function
+ * — never log a bare string or the raw query params (api_key must not appear). */
+function logEvent(event: string, data: Record<string, unknown>): void {
+  console.log(JSON.stringify({ event, ...data }));
+}
+
 function fmtDate(d: Date): string {
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
   return `${mm}/${dd}/${d.getFullYear()}`;
+}
+
+interface QueryResult {
+  items: Record<string, unknown>[];
+  runError: RunError | null;
 }
 
 async function runQuery(
@@ -85,7 +106,7 @@ async function runQuery(
   q: SamGovQuery,
   postedFrom: string,
   postedTo: string
-): Promise<{ items: Record<string, unknown>[]; error?: string }> {
+): Promise<QueryResult> {
   const params = new URLSearchParams({
     api_key: apiKey,
     ncode: q.ncode,
@@ -97,17 +118,34 @@ async function runQuery(
   if (q.title) params.set("title", q.title);
   if (q.typeOfSetAside) params.set("typeOfSetAside", q.typeOfSetAside);
 
+  // Redacted label for logs/errors — never includes api_key.
   const label = `ncode=${q.ncode}${q.title ? ` title=${q.title}` : ""}${q.typeOfSetAside ? ` setAside=${q.typeOfSetAside}` : ""}`;
 
   try {
     const res = await fetch(`${SAM_GOV_BASE}?${params.toString()}`);
     if (!res.ok) {
-      return { items: [], error: `${label}: HTTP ${res.status}` };
+      const bodyText = await res.text().catch(() => "");
+      logEvent("samgov_request", { query: label, samStatus: res.status, totalRecords: null });
+      return {
+        items: [],
+        runError: {
+          context: "search",
+          query: label,
+          samStatus: res.status,
+          error: bodyText ? `HTTP ${res.status}: ${bodyText.slice(0, 300)}` : `HTTP ${res.status}`,
+        },
+      };
     }
     const json = await res.json();
-    return { items: Array.isArray(json.opportunitiesData) ? json.opportunitiesData : [] };
+    const totalRecords = typeof json.totalRecords === "number" ? json.totalRecords : null;
+    logEvent("samgov_request", { query: label, samStatus: res.status, totalRecords });
+    return {
+      items: Array.isArray(json.opportunitiesData) ? json.opportunitiesData : [],
+      runError: null,
+    };
   } catch (e) {
-    return { items: [], error: `${label}: ${String(e)}` };
+    logEvent("samgov_request", { query: label, samStatus: null, totalRecords: null, error: String(e) });
+    return { items: [], runError: { context: "search", query: label, samStatus: null, error: String(e) } };
   }
 }
 
@@ -329,14 +367,56 @@ Deno.serve(async (req) => {
     const postedTo = fmtDate(today);
 
     let requestsUsed = 0;
+    let failedQueries = 0;
     const errors: RunError[] = [];
     const rawItems: Record<string, unknown>[] = [];
 
     for (const q of ALL_QUERIES) {
-      const { items, error } = await runQuery(samApiKey, q, postedFrom, postedTo);
+      const { items, runError } = await runQuery(samApiKey, q, postedFrom, postedTo);
       requestsUsed += 1;
-      if (error) errors.push({ context: "search", error });
+      if (runError) {
+        errors.push(runError);
+        failedQueries += 1;
+      }
       rawItems.push(...items);
+    }
+
+    // Every query failed at the request level — SAM.gov itself is down/rejecting
+    // us (bad URL, expired key, exhausted quota, etc). Report this as a real
+    // error, not a 200 with an empty preview: an all-queries-failed run must
+    // never look identical to a genuinely-empty search to the client.
+    if (failedQueries === ALL_QUERIES.length) {
+      const first = errors[0];
+      logEvent("samgov_run_summary", {
+        requestsUsed,
+        rawResults: 0,
+        afterDedupe: 0,
+        afterAlreadyImportedFilter: 0,
+        finalPreviewCount: 0,
+        failedQueries,
+        totalErrors: errors.length,
+        outcome: "total_failure",
+      });
+      const naicsCodes = [...new Set(ALL_QUERIES.map((q) => q.ncode))];
+      const setAsides = [...new Set(SDVOSB_QUERIES.map((q) => q.typeOfSetAside!))];
+      await adminClient.from("sam_gov_sync_log").insert({
+        synced_by: userId,
+        naics_codes: naicsCodes,
+        set_asides: setAsides,
+        results_found: 0,
+        new_imported: 0,
+        requests_used: requestsUsed,
+        errors,
+      });
+      return jsonResponse(
+        {
+          error: `SAM.gov search failed: all ${ALL_QUERIES.length} queries errored`,
+          samStatus: first?.samStatus ?? null,
+          query: first?.query ?? null,
+          errors,
+        },
+        502
+      );
     }
 
     // Dedupe across all 12 queries by solicitationNumber (a title can match more than one).
@@ -356,7 +436,7 @@ Deno.serve(async (req) => {
         .select("solicitation_number")
         .in("solicitation_number", solicitationNumbers);
       if (existErr) {
-        errors.push({ context: "dedup-check", error: existErr.message });
+        errors.push({ context: "dedup-check", query: null, samStatus: null, error: existErr.message });
       } else {
         for (const row of existingRows ?? []) {
           if (row.solicitation_number) existing.add(row.solicitation_number);
@@ -374,7 +454,12 @@ Deno.serve(async (req) => {
         descriptionText = await fetchDescription(samApiKey, item.description);
         requestsUsed += 1;
         if (descriptionText === null) {
-          errors.push({ context: `description-fetch:${sol}`, error: "Failed to fetch or parse description" });
+          errors.push({
+            context: `description-fetch:${sol}`,
+            query: null,
+            samStatus: null,
+            error: "Failed to fetch or parse description",
+          });
         }
       }
 
@@ -410,6 +495,17 @@ Deno.serve(async (req) => {
       });
     }
 
+    logEvent("samgov_run_summary", {
+      requestsUsed,
+      rawResults: rawItems.length,
+      afterDedupe: bySolicitation.size,
+      afterAlreadyImportedFilter: newItems.length,
+      finalPreviewCount: preview.length,
+      failedQueries,
+      totalErrors: errors.length,
+      outcome: "completed",
+    });
+
     // Log the run (visibility into daily SAM.gov request usage, 1000/day limit).
     const naicsCodes = [...new Set(ALL_QUERIES.map((q) => q.ncode))];
     const setAsides = [...new Set(SDVOSB_QUERIES.map((q) => q.typeOfSetAside!))];
@@ -422,7 +518,9 @@ Deno.serve(async (req) => {
       requests_used: requestsUsed,
       errors: errors.length > 0 ? errors : null,
     });
-    if (logError) errors.push({ context: "sync-log-insert", error: logError.message });
+    if (logError) {
+      errors.push({ context: "sync-log-insert", query: null, samStatus: null, error: logError.message });
+    }
 
     return jsonResponse({ results: preview, requestsUsed, errors });
   } catch (e) {

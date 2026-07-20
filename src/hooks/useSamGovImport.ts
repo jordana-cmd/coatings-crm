@@ -29,10 +29,17 @@ export interface SamImportResult {
   error: string | null;
 }
 
+interface SamRunError {
+  context: string;
+  query: string | null;
+  samStatus: number | null;
+  error: string;
+}
+
 interface SearchResponse {
   results: SamPreviewItem[];
   requestsUsed: number;
-  errors: { context: string; error: string }[];
+  errors: SamRunError[];
 }
 
 interface ImportResponse {
@@ -78,6 +85,14 @@ export function useSamGovImport() {
     } else {
       setResults(data.results);
       setRequestsUsed(data.requestsUsed);
+      // Total failure (all queries errored) already comes back as a non-2xx
+      // handled above. This is the partial case: some queries failed but
+      // others returned real results — surface it as a warning, not silence.
+      setError(
+        data.errors.length > 0
+          ? `${data.errors.length} SAM.gov ${data.errors.length === 1 ? "query" : "queries"} failed — results may be incomplete.`
+          : null
+      );
     }
     setSearching(false);
   };

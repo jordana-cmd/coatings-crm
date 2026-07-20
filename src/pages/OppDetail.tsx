@@ -646,6 +646,24 @@ export default function OppDetail() {
         </>
       )}
 
+      {/* Bid section empty state — pipelines that expect a bids row but lack one.
+          Older records predate the extension flow; the deal still renders. */}
+      {!bids && (isPublicBid || opp.pipeline === "GC_CHASE") && (
+        <div className="bg-card rounded-xl shadow-sm p-5">
+          <h3 className="text-xs font-semibold text-label uppercase tracking-wide mb-2">Bid Details</h3>
+          <div className="divide-y divide-card-border">
+            <NumberInput label="Amount ($)" value={opp.amount} placeholder="Bid amount"
+              onSave={(v) => updateOppField("amount", v)} isSaving={isSaving("amount")} />
+            <GrossProfitInput amount={opp.amount} grossProfitPct={opp.gross_profit_pct}
+              onSave={(v) => updateOppField("gross_profit_pct", v)} isSaving={isSaving("gross_profit_pct")} />
+          </div>
+          <p className="text-sm text-subtle text-center py-4">
+            No bid details on this deal yet — plans link, pre-bid walk, and bond
+            tracking aren&rsquo;t set up.
+          </p>
+        </div>
+      )}
+
       {/* GCs Quoted — PUBLIC_BID only */}
       {isPublicBid && <GCsQuotedCard bidQuotes={bidQuotes} />}
 

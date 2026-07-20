@@ -9,13 +9,12 @@ export type OppDetailData = OppRow & {
   company_name: string | null;
 };
 
-/** Which extension row each pipeline requires (extension-row existence rule). */
-function requiredExtension(pipeline: string): "bids" | "facility_details" | "federal_details" {
-  if (pipeline === "FACILITY") return "facility_details";
-  if (pipeline === "FEDERAL") return "federal_details";
-  return "bids";
-}
-
+/**
+ * A missing 1:1 extension row is an expected state, not a fatal error —
+ * records seeded before the extension flow existed legitimately lack one.
+ * Consumers render an empty section instead; `error` is reserved for
+ * genuine fetch failures.
+ */
 function unwrap<T>(v: T | T[] | null): T | null {
   return Array.isArray(v) ? (v[0] ?? null) : v;
 }
@@ -55,13 +54,6 @@ export function useOpportunity(id: string | undefined) {
       federal_details: unwrap(opp.federal_details as FederalRow | FederalRow[] | null),
       company_name: (opp.companies as { name: string } | null)?.name ?? null,
     } as OppDetailData;
-
-    const required = requiredExtension(result.pipeline);
-    if (!result[required]) {
-      setError(`${required} extension row missing`);
-      setLoading(false);
-      return;
-    }
 
     setData(result);
     setError(null);
