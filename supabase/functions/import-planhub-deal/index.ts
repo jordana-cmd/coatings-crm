@@ -49,6 +49,17 @@ interface ImportRow {
   revision: number;
 }
 
+// End-of-run summary from the shipper — records the crm-inbox pending count.
+interface ShipRunReport {
+  type: "ship_run";
+  found?: number;
+  created?: number;
+  updated?: number;
+  skipped?: number;
+  failed?: number;
+  errors?: unknown;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -116,8 +127,28 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ opportunityId, storagePath, documentsAttached });
     }
 
-    // ── JSON deal ingest ──
-    const payload = (await req.json()) as DealJson;
+    // ── JSON body: either a ship-run summary or a deal ──
+    const rawBody = (await req.json()) as DealJson | ShipRunReport;
+
+    if ((rawBody as ShipRunReport).type === "ship_run") {
+      const r = rawBody as ShipRunReport;
+      const { error: statusErr } = await admin.from("planhub_ship_status").insert({
+        folders_found: r.found ?? 0,
+        created: r.created ?? 0,
+        updated: r.updated ?? 0,
+        skipped: r.skipped ?? 0,
+        failed: r.failed ?? 0,
+        errors: r.errors ?? null,
+      });
+      if (statusErr) {
+        logEvent("planhub_ship_run", { error: statusErr.message });
+        return jsonResponse({ error: statusErr.message }, 500);
+      }
+      logEvent("planhub_ship_run", { found: r.found, failed: r.failed });
+      return jsonResponse({ ok: true });
+    }
+
+    const payload = rawBody as DealJson;
     const warnings: string[] = [];
 
     if (payload.schema_version !== 1) {

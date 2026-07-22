@@ -14,6 +14,7 @@ import ContactDetail from "./pages/ContactDetail";
 import ReportsPage from "./pages/ReportsPage";
 import GoalsPage from "./pages/GoalsPage";
 import SamImportPage from "./pages/SamImportPage";
+import ImportsPage from "./pages/ImportsPage";
 
 function App() {
   return (
@@ -129,6 +130,16 @@ function App() {
               <ProtectedRoute>
                 <AppShell>
                   <ReportsPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/imports"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <ImportsPage />
                 </AppShell>
               </ProtectedRoute>
             }

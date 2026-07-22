@@ -1248,6 +1248,39 @@ export type Database = {
           },
         ]
       }
+      planhub_ship_status: {
+        Row: {
+          created: number
+          errors: Json | null
+          failed: number
+          folders_found: number
+          id: string
+          ran_at: string
+          skipped: number
+          updated: number
+        }
+        Insert: {
+          created?: number
+          errors?: Json | null
+          failed?: number
+          folders_found?: number
+          id?: string
+          ran_at?: string
+          skipped?: number
+          updated?: number
+        }
+        Update: {
+          created?: number
+          errors?: Json | null
+          failed?: number
+          folders_found?: number
+          id?: string
+          ran_at?: string
+          skipped?: number
+          updated?: number
+        }
+        Relationships: []
+      }
       sam_gov_sync_log: {
         Row: {
           errors: Json | null

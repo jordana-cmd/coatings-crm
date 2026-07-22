@@ -10,6 +10,7 @@ import {
   Users,
   BarChart3,
   Target,
+  Inbox,
   Bell,
   Settings,
   LogOut,
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
   { label: "Reports", path: "/reports", icon: BarChart3 },
   { label: "Goals", path: "/goals", icon: Target },
   { label: "Calendar", path: "/calendar", icon: CalendarDays },
+  { label: "Imports", path: "/imports", icon: Inbox },
 ];
 
 function SidebarContent({ current, onNav }: { current: string; onNav: (p: string) => void }) {
