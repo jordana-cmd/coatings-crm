@@ -46,13 +46,20 @@ This repo is developed from two machines. Every session, on either machine:
 - Browser uses the **Publishable key** (`sb_publishable_...`). The **Secret key** (`sb_secret_...`) is server-only, bypasses RLS, never goes in client code or the repo.
 
 ### Stage values (SCREAMING_SNAKE, exact sets)
+Current sets after the migration 00076 stage restructure. `stage` is `text` gated by the
+`valid_stage_for_pipeline()` CHECK (not an enum), so these are the authoritative literals.
 ```
-PUBLIC_BID: SOURCED, ESTIMATING, SUBMITTED, AWARDED, LOST
-GC_CHASE:   ON_THE_LIST, QUOTING, CARRIED, GC_AWARDED, WON, LOST
-FACILITY:   ENGAGED, SITE_WALK, PROPOSAL, APPROVAL, WON, LOST, NURTURE
+PUBLIC_BID: SOURCED, BIDDING, ESTIMATED, SUBMITTED, AWARDED, LOST
+GC_CHASE:   QUALIFIED, BIDDING, ESTIMATED, SUBMITTED, GC_AWARDED, WON, LOST
+FACILITY:   ENGAGED, SITE_WALK, PROPOSAL, APPROVAL, WON, LOST
 FEDERAL:    INTAKE, EXTRACTION, SCORING, ESTIMATING, SUBMITTED, AWARDED, LOST
 ```
-M3 TS pipeline definitions MUST use these exact literals.
+The TS pipeline definitions in `src/lib/pipelines.ts` MUST match these exactly.
+
+00076 changed vs. the original model: PUBLIC_BID added `BIDDING` and renamed `ESTIMATING→ESTIMATED`
+(FEDERAL keeps its own `ESTIMATING` — the rename was pipeline-scoped); GC_CHASE renamed
+`ON_THE_LIST→QUALIFIED`, added `BIDDING`/`ESTIMATED`/`SUBMITTED`, and removed `QUOTING`/`CARRIED`;
+FACILITY removed the `NURTURE` stage (the `NURTURE` *status* enum value is retained).
 
 ### Status enum
 ```
