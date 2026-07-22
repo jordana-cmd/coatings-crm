@@ -1621,12 +1621,55 @@ export type Database = {
           status: Database["public"]["Enums"]["opp_status"]
         }[]
       }
+      cowork_create_opportunity: {
+        Args: {
+          p_amount?: number
+          p_company_address?: string
+          p_company_email?: string
+          p_company_id?: string
+          p_company_name?: string
+          p_company_region?: string
+          p_company_type?: Database["public"]["Enums"]["company_type"]
+          p_job_site_address: string
+          p_name: string
+          p_owner: string
+          p_pipeline: Database["public"]["Enums"]["pipeline_type"]
+          p_solicitation_number?: string
+        }
+        Returns: {
+          company_id: string
+          opportunity_id: string
+          status: string
+        }[]
+      }
+      cowork_log_activity: {
+        Args: {
+          p_next_action?: string
+          p_next_action_at?: string
+          p_note?: string
+          p_opportunity_id: string
+          p_owner: string
+          p_type: Database["public"]["Enums"]["activity_type"]
+        }
+        Returns: string
+      }
       create_opportunity: {
         Args: {
           p_amount?: number
           p_company_id: string
           p_job_site_address: string
           p_name: string
+          p_pipeline: Database["public"]["Enums"]["pipeline_type"]
+        }
+        Returns: string
+      }
+      create_opportunity_core: {
+        Args: {
+          p_amount?: number
+          p_company_id: string
+          p_job_site_address: string
+          p_name: string
+          p_owner: string
           p_pipeline: Database["public"]["Enums"]["pipeline_type"]
         }
         Returns: string

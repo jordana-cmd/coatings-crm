@@ -218,7 +218,10 @@ All under `public`, called via `supabase.rpc()` or by Edge Functions. †=SECURI
 
 | function | signature → returns | purpose |
 |---|---|---|
-| `create_opportunity` | (name, pipeline, company_id, addr, amount?) → uuid | Insert opp at the pipeline's entry stage + its extension row, in one txn. GC_CHASE entry = QUALIFIED. |
+| `create_opportunity` | (name, pipeline, company_id, addr, amount?) → uuid | Thin wrapper over `create_opportunity_core(auth.uid(), …)`. GC_CHASE entry = QUALIFIED. |
+| `create_opportunity_core` | (owner, name, pipeline, company_id, addr, amount?) → uuid | Explicit-owner core: entry stage + same-txn extension-row insert. Single source of truth for both. |
+| `cowork_create_opportunity` † | (owner, name, pipeline, addr, amount?, company ref…, solicitation#?) → (status, opp, company) | Token-agent create: company find-or-create + core, one txn. FEDERAL deduped on solicitation_number → `status='exists'`. |
+| `cowork_log_activity` † | (owner, opp_id, type, note?, next_action?, next_action_at?) → uuid | Token-agent single activity insert as the designated owner. |
 | `advance_stage` † | (opp_id, target_stage) → (id,stage,status) | The stage state machine — validation, gates, status coupling, win-prob, history. |
 | `valid_stage_for_pipeline` | (pipeline, stage) → bool | IMMUTABLE; backs the stage CHECK. |
 | `delete_opportunity` † | (opp_id) → void | Owner/admin hard delete; cascades bids, quotes, activities, history, docs. |
@@ -239,6 +242,7 @@ All under `public`, called via `supabase.rpc()` or by Edge Functions. †=SECURI
 | `claude-extract` | `ANTHROPIC_API_KEY` | Structured-output extraction of a federal solicitation into `federal_details`. Status PENDING→PROCESSING→COMPLETE; INTAKE→EXTRACTION gate requires COMPLETE. |
 | `claude-score` | `ANTHROPIC_API_KEY` | Scores an extracted federal opp BID/WATCH/PASS vs. the company profile. Requires extraction COMPLETE; drives EXTRACTION→SCORING. |
 | `import-planhub-deal` | `PLANHUB_IMPORT_TOKEN`, `PLANHUB_IMPORT_OWNER_ID` | Token-authed (`X-Import-Token`, `--no-verify-jwt`). JSON → `import_planhub_deal`; multipart → document upload (dedup on path); `type:"ship_run"` → ship-status heartbeat. |
+| `cowork-write` | `COWORK_WRITE_TOKEN`, `COWORK_WRITE_OWNER_ID` | Token-authed (`X-Cowork-Token`, `--no-verify-jwt`) write path for the Cowork agent. JSON action router → `cowork_create_opportunity` / `cowork_log_activity` / `advance_stage` (direct). No direct table writes. See `docs/cowork-write-api.md`. |
 
 `_shared/edge.ts` holds the common auth/CORS/JSON helpers (sam-gov-search predates it and keeps its
 own copies).
