@@ -48,12 +48,12 @@ function makeOppWithoutBids(overrides: Partial<OppRow> = {}): OppForGates {
 describe("canAdvance: PUBLIC_BID with no bids extension row", () => {
   it("does not throw when the bids row is missing", () => {
     const opp = makeOppWithoutBids();
-    expect(() => canAdvance(opp, "ESTIMATING")).not.toThrow();
+    expect(() => canAdvance(opp, "BIDDING")).not.toThrow();
   });
 
   it("blocks advancement and reports the missing bid details", () => {
     const opp = makeOppWithoutBids();
-    const result = canAdvance(opp, "ESTIMATING");
+    const result = canAdvance(opp, "BIDDING");
 
     expect(result.allowed).toBe(false);
     expect(result.unmet).toEqual([

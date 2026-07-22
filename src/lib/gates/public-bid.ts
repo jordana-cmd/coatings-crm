@@ -1,15 +1,18 @@
 import type { OppWithBids, GateResult, UnmetCondition } from "./types";
 
 /**
- * PUBLIC_BID gate predicates from spec §3.
+ * PUBLIC_BID gate predicates.
  *
- * Stages: SOURCED → ESTIMATING → SUBMITTED → AWARDED | LOST
+ * Stages: SOURCED → BIDDING → ESTIMATED → SUBMITTED → AWARDED | LOST
+ * The new BIDDING step is permissive (SOURCED→BIDDING checks a plans link;
+ * BIDDING→ESTIMATED is allow-through). The strict readiness gate stays at
+ * ESTIMATED→SUBMITTED.
  *
  * Returns all unmet conditions (not just the first) so the UI can list
  * every blocker as a checklist.
  */
 
-export function sourcedToEstimating(opp: OppWithBids): GateResult {
+export function sourcedToBidding(opp: OppWithBids): GateResult {
   const unmet: UnmetCondition[] = [];
 
   if (!opp.bids.plans_link) {
@@ -19,7 +22,7 @@ export function sourcedToEstimating(opp: OppWithBids): GateResult {
   return { allowed: unmet.length === 0, unmet };
 }
 
-export function estimatingToSubmitted(opp: OppWithBids): GateResult {
+export function estimatedToSubmitted(opp: OppWithBids): GateResult {
   const unmet: UnmetCondition[] = [];
 
   if (!opp.bids.addenda_acknowledged) {
@@ -67,8 +70,8 @@ export function submittedToLost(opp: OppWithBids): GateResult {
 }
 
 const PUBLIC_BID_GATES: Record<string, (opp: OppWithBids) => GateResult> = {
-  "SOURCED→ESTIMATING": sourcedToEstimating,
-  "ESTIMATING→SUBMITTED": estimatingToSubmitted,
+  "SOURCED→BIDDING": sourcedToBidding,
+  "ESTIMATED→SUBMITTED": estimatedToSubmitted,
   "SUBMITTED→AWARDED": submittedToAwarded,
   "SUBMITTED→LOST": submittedToLost,
 };

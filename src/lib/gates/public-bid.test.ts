@@ -75,15 +75,15 @@ function makeOppWithBids(
   return { ...opp, bids: makeBids({ opportunity_id: opp.id, ...bidsOverrides }) };
 }
 
-// ── SOURCED → ESTIMATING ───────────────────────────────────────────
+// ── SOURCED → BIDDING ──────────────────────────────────────────────
 
-describe("PUBLIC_BID: SOURCED → ESTIMATING", () => {
+describe("PUBLIC_BID: SOURCED → BIDDING", () => {
   it("allows when plans_link present (go_no_go irrelevant)", () => {
     const opp = makeOppWithBids(
       { stage: "SOURCED" },
       { plans_link: "https://planroom.com/123", go_no_go: false }
     );
-    const result = canAdvance(opp, "ESTIMATING");
+    const result = canAdvance(opp, "BIDDING");
     expect(result.allowed).toBe(true);
     expect(result.unmet).toHaveLength(0);
   });
@@ -93,7 +93,7 @@ describe("PUBLIC_BID: SOURCED → ESTIMATING", () => {
       { stage: "SOURCED" },
       { plans_link: null }
     );
-    const result = canAdvance(opp, "ESTIMATING");
+    const result = canAdvance(opp, "BIDDING");
     expect(result.allowed).toBe(false);
     expect(result.unmet).toHaveLength(1);
     expect(result.unmet).toContainEqual(
@@ -102,11 +102,11 @@ describe("PUBLIC_BID: SOURCED → ESTIMATING", () => {
   });
 });
 
-// ── ESTIMATING → SUBMITTED ─────────────────────────────────────────
+// ── ESTIMATED → SUBMITTED ──────────────────────────────────────────
 
-describe("PUBLIC_BID: ESTIMATING → SUBMITTED", () => {
+describe("PUBLIC_BID: ESTIMATED → SUBMITTED", () => {
   const allGatesPass = {
-    oppOverrides: { stage: "ESTIMATING" as const, amount: 50000 },
+    oppOverrides: { stage: "ESTIMATED" as const, amount: 50000 },
     bidsOverrides: {
       addenda_acknowledged: true,
       estimate_file_url: "https://storage/est.pdf",
@@ -232,7 +232,7 @@ describe("PUBLIC_BID: ESTIMATING → SUBMITTED", () => {
 
   it("returns ALL unmet when everything fails", () => {
     const opp = makeOppWithBids(
-      { stage: "ESTIMATING", amount: null },
+      { stage: "ESTIMATED", amount: null },
       {
         addenda_acknowledged: false,
         estimate_file_url: null,
@@ -309,8 +309,8 @@ describe("stage transition validation", () => {
     expect(result.unmet[0].field).toBe("stage");
   });
 
-  it("rejects going backwards (ESTIMATING → SOURCED)", () => {
-    const opp = makeOppWithBids({ stage: "ESTIMATING" }, {});
+  it("rejects going backwards (ESTIMATED → SOURCED)", () => {
+    const opp = makeOppWithBids({ stage: "ESTIMATED" }, {});
     const result = canAdvance(opp, "SOURCED");
     expect(result.allowed).toBe(false);
     expect(result.unmet[0].field).toBe("stage");

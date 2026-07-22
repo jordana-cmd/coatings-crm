@@ -7,16 +7,18 @@ export type Pipeline = Database["public"]["Enums"]["pipeline_type"];
 
 export const PUBLIC_BID_STAGES = [
   "SOURCED",
-  "ESTIMATING",
+  "BIDDING",
+  "ESTIMATED",
   "SUBMITTED",
   "AWARDED",
   "LOST",
 ] as const;
 
 export const GC_CHASE_STAGES = [
-  "ON_THE_LIST",
-  "QUOTING",
-  "CARRIED",
+  "QUALIFIED",
+  "BIDDING",
+  "ESTIMATED",
+  "SUBMITTED",
   "GC_AWARDED",
   "WON",
   "LOST",
@@ -29,7 +31,6 @@ export const FACILITY_STAGES = [
   "APPROVAL",
   "WON",
   "LOST",
-  "NURTURE",
 ] as const;
 
 export const FEDERAL_STAGES = [
@@ -49,8 +50,8 @@ export type FederalStage = (typeof FEDERAL_STAGES)[number];
 export type Stage = PublicBidStage | GcChaseStage | FacilityStage | FederalStage;
 
 // Ordered active stages (excludes terminal outcomes) for pipeline progress bars
-export const PUBLIC_BID_ACTIVE = ["SOURCED", "ESTIMATING", "SUBMITTED", "AWARDED"] as const;
-export const GC_CHASE_ACTIVE = ["ON_THE_LIST", "QUOTING", "CARRIED", "GC_AWARDED", "WON"] as const;
+export const PUBLIC_BID_ACTIVE = ["SOURCED", "BIDDING", "ESTIMATED", "SUBMITTED", "AWARDED"] as const;
+export const GC_CHASE_ACTIVE = ["QUALIFIED", "BIDDING", "ESTIMATED", "SUBMITTED", "GC_AWARDED", "WON"] as const;
 export const FACILITY_ACTIVE = ["ENGAGED", "SITE_WALK", "PROPOSAL", "APPROVAL", "WON"] as const;
 export const FEDERAL_ACTIVE = ["INTAKE", "EXTRACTION", "SCORING", "ESTIMATING", "SUBMITTED", "AWARDED"] as const;
 
@@ -68,12 +69,12 @@ export function stagesFor(pipeline: Pipeline): readonly string[] {
 // Human-readable labels
 export const STAGE_LABELS: Record<string, string> = {
   SOURCED: "Sourced",
-  ESTIMATING: "Estimating",
+  QUALIFIED: "Qualified",
+  BIDDING: "Bidding",
+  ESTIMATED: "Estimated",
+  ESTIMATING: "Estimating", // FEDERAL retains this stage
   SUBMITTED: "Submitted",
   AWARDED: "Awarded",
-  ON_THE_LIST: "On the List",
-  QUOTING: "Quoting",
-  CARRIED: "Carried",
   GC_AWARDED: "GC Awarded",
   ENGAGED: "Engaged",
   SITE_WALK: "Site Walk",
@@ -84,7 +85,6 @@ export const STAGE_LABELS: Record<string, string> = {
   SCORING: "Scoring",
   WON: "Won",
   LOST: "Lost",
-  NURTURE: "Nurture",
 };
 
 export const PIPELINE_LABELS: Record<Pipeline, string> = {

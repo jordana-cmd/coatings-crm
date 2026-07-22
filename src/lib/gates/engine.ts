@@ -18,7 +18,7 @@ const ACTIVE_STAGES: Record<Pipeline, readonly string[]> = {
 const TERMINAL_FROM: Record<Pipeline, Record<string, string[]>> = {
   PUBLIC_BID: { SUBMITTED: ["AWARDED", "LOST"] },
   GC_CHASE: { GC_AWARDED: ["WON", "LOST"] },
-  FACILITY: { APPROVAL: ["WON", "LOST", "NURTURE"] },
+  FACILITY: { APPROVAL: ["WON", "LOST"] },
   FEDERAL: { SUBMITTED: ["AWARDED", "LOST"] },
 };
 

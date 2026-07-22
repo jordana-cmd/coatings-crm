@@ -18,9 +18,9 @@ export default function StageTracker({ opp }: Props) {
   }
 
   const pipeline = opp.pipeline as Pipeline;
-  const allStages = stagesFor(pipeline).filter((s) => s !== "LOST" && s !== "NURTURE");
+  const allStages = stagesFor(pipeline).filter((s) => s !== "LOST");
   const currentIdx = allStages.indexOf(opp.stage);
-  const isTerminal = opp.stage === "LOST" || opp.stage === "NURTURE";
+  const isTerminal = opp.stage === "LOST";
 
   return (
     <div className="flex items-center gap-1 overflow-x-auto pb-1">

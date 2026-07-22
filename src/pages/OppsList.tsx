@@ -63,7 +63,7 @@ function isValidDrop(pipeline: Pipeline, fromStage: string, toStage: string): bo
     // Only allow terminal from the last active stage
     if (pipeline === "PUBLIC_BID" && fromStage === "SUBMITTED" && (toStage === "AWARDED" || toStage === "LOST")) return true;
     if (pipeline === "GC_CHASE" && fromStage === "GC_AWARDED" && (toStage === "WON" || toStage === "LOST")) return true;
-    if (pipeline === "FACILITY" && fromStage === "APPROVAL" && (toStage === "WON" || toStage === "LOST" || toStage === "NURTURE")) return true;
+    if (pipeline === "FACILITY" && fromStage === "APPROVAL" && (toStage === "WON" || toStage === "LOST")) return true;
     if (pipeline === "FEDERAL" && fromStage === "SUBMITTED" && (toStage === "AWARDED" || toStage === "LOST")) return true;
   }
   return false;

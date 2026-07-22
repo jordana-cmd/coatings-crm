@@ -6,10 +6,10 @@
  */
 
 export const GATE_ACTION_LABELS: Record<string, string> = {
-  // PUBLIC_BID: SOURCED → ESTIMATING
+  // PUBLIC_BID: SOURCED → BIDDING
   "bids.plans_link": "Add a plans/specs link",
 
-  // PUBLIC_BID: ESTIMATING → SUBMITTED
+  // PUBLIC_BID: ESTIMATED → SUBMITTED
   "bids.addenda_acknowledged": "Confirm addenda acknowledged",
   "opportunities.amount": "Enter the bid amount",
   "bids.prebid_walk_completed": "Log the mandatory pre-bid walk",
