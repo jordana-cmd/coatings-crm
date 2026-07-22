@@ -1154,6 +1154,100 @@ export type Database = {
           },
         ]
       }
+      planhub_details: {
+        Row: {
+          building_use: string | null
+          construction_type: string | null
+          distance_miles: number | null
+          fit: string | null
+          flooring_scope_summary: string | null
+          id: string
+          imported_at: string
+          labor: string | null
+          opportunity_id: string
+          planhub_created_at: string | null
+          planhub_id: string
+          planhub_url: string | null
+          project_type: string | null
+          project_value_usd: number | null
+          revision: number
+          short_name: string | null
+          source: string | null
+          square_feet: number | null
+          updated_at: string | null
+          verdict: string | null
+          why: string | null
+        }
+        Insert: {
+          building_use?: string | null
+          construction_type?: string | null
+          distance_miles?: number | null
+          fit?: string | null
+          flooring_scope_summary?: string | null
+          id?: string
+          imported_at?: string
+          labor?: string | null
+          opportunity_id: string
+          planhub_created_at?: string | null
+          planhub_id: string
+          planhub_url?: string | null
+          project_type?: string | null
+          project_value_usd?: number | null
+          revision?: number
+          short_name?: string | null
+          source?: string | null
+          square_feet?: number | null
+          updated_at?: string | null
+          verdict?: string | null
+          why?: string | null
+        }
+        Update: {
+          building_use?: string | null
+          construction_type?: string | null
+          distance_miles?: number | null
+          fit?: string | null
+          flooring_scope_summary?: string | null
+          id?: string
+          imported_at?: string
+          labor?: string | null
+          opportunity_id?: string
+          planhub_created_at?: string | null
+          planhub_id?: string
+          planhub_url?: string | null
+          project_type?: string | null
+          project_value_usd?: number | null
+          revision?: number
+          short_name?: string | null
+          source?: string | null
+          square_feet?: number | null
+          updated_at?: string | null
+          verdict?: string | null
+          why?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planhub_details_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planhub_details_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "v_closing_this_month"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planhub_details_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "v_stale_leaks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sam_gov_sync_log: {
         Row: {
           errors: Json | null
@@ -1535,6 +1629,14 @@ export type Database = {
           p_title: string
         }
         Returns: string
+      }
+      import_planhub_deal: {
+        Args: { p_owner_id: string; payload: Json }
+        Returns: {
+          opportunity_id: string
+          revision: number
+          status: string
+        }[]
       }
       log_gmail_contact_note: {
         Args: {
