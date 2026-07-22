@@ -361,9 +361,14 @@ Deno.serve(async (req) => {
     }
 
     const today = new Date();
-    const oneYearAgo = new Date(today);
-    oneYearAgo.setDate(oneYearAgo.getDate() - 365);
-    const postedFrom = fmtDate(oneYearAgo);
+    // SAM.gov requires postedFrom..postedTo strictly under 1 year — a full
+    // 365-day span is rejected with HTTP 400 ("Date range must be ... year(s)
+    // apart"). Stay a few days inside the boundary. (This 400 was masked while
+    // the API key was quota-exhausted, since 429 is returned before SAM.gov
+    // validates the date range.)
+    const rangeStart = new Date(today);
+    rangeStart.setDate(rangeStart.getDate() - 360);
+    const postedFrom = fmtDate(rangeStart);
     const postedTo = fmtDate(today);
 
     let requestsUsed = 0;
