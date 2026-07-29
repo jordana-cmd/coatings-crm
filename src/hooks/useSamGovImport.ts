@@ -67,12 +67,17 @@ export function useSamGovImport() {
   const [requestsUsed, setRequestsUsed] = useState<number | null>(null);
   const [searching, setSearching] = useState(false);
   const [importing, setImporting] = useState(false);
+  // Fatal: no results at all / transport / auth failure — gates the table.
   const [error, setError] = useState<string | null>(null);
+  // Partial: results came back but some sub-queries (e.g. description
+  // fetches) failed — non-blocking, must never hide the results table.
+  const [warnings, setWarnings] = useState<string | null>(null);
 
   const pull = async () => {
     if (!supabase) { setError("Supabase not configured"); return; }
     setSearching(true);
     setError(null);
+    setWarnings(null);
     setResults([]);
     setRequestsUsed(null);
 
@@ -86,9 +91,10 @@ export function useSamGovImport() {
       setResults(data.results);
       setRequestsUsed(data.requestsUsed);
       // Total failure (all queries errored) already comes back as a non-2xx
-      // handled above. This is the partial case: some queries failed but
-      // others returned real results — surface it as a warning, not silence.
-      setError(
+      // handled above. This is the partial case: some queries failed but the
+      // response still succeeded — surface it as a non-blocking warning so
+      // the results table stays visible.
+      setWarnings(
         data.errors.length > 0
           ? `${data.errors.length} SAM.gov ${data.errors.length === 1 ? "query" : "queries"} failed — results may be incomplete.`
           : null
@@ -119,5 +125,5 @@ export function useSamGovImport() {
     return { data, error: null };
   };
 
-  return { results, requestsUsed, searching, importing, error, pull, importSelected };
+  return { results, requestsUsed, searching, importing, error, warnings, pull, importSelected };
 }

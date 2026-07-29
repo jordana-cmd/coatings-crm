@@ -43,7 +43,7 @@ function DescriptionCell({ text }: { text: string | null }) {
 
 export default function SamImportPage() {
   const navigate = useNavigate();
-  const { results, requestsUsed, searching, importing, error, pull, importSelected } = useSamGovImport();
+  const { results, requestsUsed, searching, importing, error, warnings, pull, importSelected } = useSamGovImport();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [hasSearched, setHasSearched] = useState(false);
   const [importSummary, setImportSummary] = useState<{
@@ -143,6 +143,12 @@ export default function SamImportPage() {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {warnings && !searching && (
+        <div className="rounded-xl border border-pending/40 bg-pending-light/40 p-3 mb-4">
+          <p className="text-xs text-label">{warnings}</p>
         </div>
       )}
 
