@@ -102,7 +102,7 @@ export default function SamImportPage() {
         <div>
           <h1 className="text-xl font-semibold text-heading">SAM.gov Import</h1>
           <p className="text-xs text-label mt-0.5">
-            Searches flooring/coating NAICS codes and SDVOSB set-asides, hides anything already imported.
+            Searches flooring, coating &amp; roofing NAICS codes and SDVOSB set-asides, hides anything already imported.
           </p>
         </div>
         <div className="flex items-center gap-2">

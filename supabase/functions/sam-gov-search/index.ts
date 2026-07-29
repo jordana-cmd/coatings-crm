@@ -31,6 +31,15 @@ const FLOORING_QUERIES: SamGovQuery[] = [
   { ncode: "238390", title: "coating" },
 ];
 
+// Roofing Contractors (NAICS 238160) — same flooring-style pattern:
+// 6-digit ncode + title keyword, no set-aside filter.
+const ROOFING_QUERIES: SamGovQuery[] = [
+  { ncode: "238160", title: "roofing" },
+  { ncode: "238160", title: "roof coating" },
+  { ncode: "238160", title: "roof restoration" },
+  { ncode: "238160", title: "roof replacement" },
+];
+
 // SAM.gov's documented ncode param is max 6 digits — this 2-digit sector
 // code is unverified against that constraint and may itself 400 even with
 // the URL fixed. Flagged, not changed here: not the reported failure since
@@ -42,7 +51,7 @@ const SDVOSB_QUERIES: SamGovQuery[] = [
   { ncode: "23", typeOfSetAside: "VSS" },
 ];
 
-const ALL_QUERIES: SamGovQuery[] = [...FLOORING_QUERIES, ...SDVOSB_QUERIES];
+const ALL_QUERIES: SamGovQuery[] = [...FLOORING_QUERIES, ...ROOFING_QUERIES, ...SDVOSB_QUERIES];
 
 interface PreviewItem {
   solicitationNumber: string;
