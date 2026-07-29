@@ -31,7 +31,7 @@ function makeOpp(overrides: Partial<OppRow> = {}): OppRow {
     amount: null, owner_id: "user-1", company_id: "co-1",
     job_site_address: "123 Main St", job_site_lat: null, job_site_lng: null,
     project_tag: null, prevailing_wage: null, status: "OPEN",
-    lost_reason: null, revisit_date: null, completed_at: null,
+    lost_reason: null, closed_loss_at: null, revisit_date: null, completed_at: null,
     completion_notes: null, final_value: null, expected_close_date: null,
     win_probability: null, stage_entered_at: null, next_step: null,
     next_step_date: null, priority: null, competitor: null,
@@ -146,6 +146,23 @@ describe("resolveOppNextAction: status filter", () => {
 
   it("returns null for LOST opps", () => {
     const opp = makeOppForCadence({ status: "LOST" });
+    expect(resolveOppNextAction(opp)).toBeNull();
+  });
+
+  // Second line of defence for dashboard No Bid: even if a NO_BID row reached
+  // the resolver, it must not produce a touch-list item.
+  it("returns null for NO_BID opps", () => {
+    const opp = makeOppForCadence({ status: "NO_BID" });
+    expect(resolveOppNextAction(opp)).toBeNull();
+  });
+
+  it("returns null for closed-loss opps even while a manual next step is set", () => {
+    const opp = makeOppForCadence({
+      status: "LOST",
+      closed_loss_at: new Date().toISOString(),
+      next_step: "Call the estimator",
+      next_step_date: new Date().toISOString().slice(0, 10),
+    });
     expect(resolveOppNextAction(opp)).toBeNull();
   });
 });

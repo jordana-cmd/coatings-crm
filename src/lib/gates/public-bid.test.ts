@@ -21,6 +21,7 @@ function makeOpp(overrides: Partial<OppRow> = {}): OppRow {
     prevailing_wage: null,
     status: "OPEN",
     lost_reason: null,
+    closed_loss_at: null,
     revisit_date: null,
     completed_at: null,
     completion_notes: null,

@@ -19,8 +19,11 @@ import { useBidQuotes } from "../hooks/useBidQuotes";
 import { useCompetitorBids } from "../hooks/useCompetitorBids";
 import CompetitorBidsCard from "../components/opps/CompetitorBidsCard";
 import { useOppDocuments, type OppDocument } from "../hooks/useOppDocuments";
+import { useOppTriage } from "../hooks/useOppTriage";
+import CloseLossModal from "../components/opps/CloseLossModal";
+import type { LossReason } from "../lib/lossReasons";
 import { supabase } from "../lib/supabase";
-import { Trash2 } from "lucide-react";
+import { Trash2, XCircle } from "lucide-react";
 
 type OppUpdate = Database["public"]["Tables"]["opportunities"]["Update"];
 
@@ -496,6 +499,8 @@ export default function OppDetail() {
   const { isPinned, pin, unpin } = usePins();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showCloseLoss, setShowCloseLoss] = useState(false);
+  const triage = useOppTriage();
   const isPublicBid = opp?.pipeline === "PUBLIC_BID";
   const isFederal = opp?.pipeline === "FEDERAL";
   const bidQuotes = useBidQuotes(isPublicBid ? id : undefined);
@@ -565,6 +570,31 @@ export default function OppDetail() {
 
       {/* Gate checklist */}
       <GateChecklist opp={opp as OppForGates} onAdvance={advance} advancing={advancing} advanceError={advanceError} />
+
+      {/* Close Loss — available from ANY stage, unlike the gate checklist's
+          LOST transition, which only opens up at the terminal decision stage.
+          A deal can die at Sourced/Qualified and still needs a reason on it. */}
+      {opp.stage !== "LOST" ? (
+        <div className="flex justify-end">
+          <button onClick={() => setShowCloseLoss(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-dq-border px-3 py-2
+                       text-xs font-medium text-dq active:bg-dq-bg">
+            <XCircle size={13} /> Close as Loss
+          </button>
+        </div>
+      ) : opp.lost_reason && (
+        <div className="bg-dq-bg border border-dq-border rounded-xl px-4 py-3">
+          <p className="text-[10px] text-dq uppercase tracking-wider font-semibold">Loss Reason</p>
+          <p className="text-sm text-dq mt-0.5">
+            {opp.lost_reason}
+            {opp.closed_loss_at && (
+              <span className="text-xs opacity-70 ml-1.5">
+                · closed {new Date(opp.closed_loss_at).toLocaleDateString()}
+              </span>
+            )}
+          </p>
+        </div>
+      )}
 
       {saveError && (
         <div className="bg-dq-bg border border-dq-border rounded-xl p-3 text-sm text-dq text-center">{saveError}</div>
@@ -713,6 +743,19 @@ export default function OppDetail() {
       </div>
 
       <QuickLogFAB opportunityId={opp.id} companyId={opp.company_id} onLogged={refetchActivities} />
+
+      {showCloseLoss && (
+        <CloseLossModal oppName={opp.name}
+          saving={triage.pending === opp.id}
+          error={triage.error}
+          onSubmit={async (reason: LossReason) => {
+            const { error: err } = await triage.closeLoss(opp.id, reason);
+            if (err) return;
+            setShowCloseLoss(false);
+            await refetch();
+          }}
+          onClose={() => { triage.clearError(); setShowCloseLoss(false); }} />
+      )}
 
       {/* Delete confirmation */}
       {showDeleteConfirm && (

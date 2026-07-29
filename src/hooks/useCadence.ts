@@ -48,10 +48,15 @@ async function fetchAllTouchItems(): Promise<TouchListItem[]> {
   if (!supabase) return [];
 
   // ── Fetch OPEN opps with bids extension ──
+  // status = 'OPEN' is what excludes triaged deals: a No Bid sets status to
+  // NO_BID and Close Loss sets it to LOST, so both drop out here. The
+  // closed_loss_at guard is belt-and-braces for a row whose reason was
+  // recorded without the status having moved.
   const { data: opps } = await supabase
     .from("opportunities")
     .select("*, bids(*), federal_details(site_visit_date, site_visit_completed, response_deadline), companies(name)")
-    .eq("status", "OPEN");
+    .eq("status", "OPEN")
+    .is("closed_loss_at", null);
 
   const oppIds = (opps ?? []).map((o) => o.id);
   const lastActivityMap: Record<string, string> = {};
@@ -89,6 +94,10 @@ async function fetchAllTouchItems(): Promise<TouchListItem[]> {
         stage: o.stage,
         lastContactedAt: lastActivityMap[o.id] ?? null,
         nextAction,
+        bidDueAt:
+          oppForCadence.bids?.bid_due_at ??
+          oppForCadence.federalDetails?.response_deadline ??
+          null,
       });
     }
   }
@@ -117,6 +126,7 @@ async function fetchAllTouchItems(): Promise<TouchListItem[]> {
         stage: null,
         lastContactedAt: c.last_contacted_at ?? null,
         nextAction,
+        bidDueAt: null, // contacts have no bid deadline
       });
     }
   }
@@ -136,6 +146,19 @@ export function useTouchList() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const refetch = useCallback(() => setRefreshKey((k) => k + 1), []);
+
+  /**
+   * Drop an item from the list without a re-fetch, so No Bid / Close Loss feel
+   * instant on a phone. The next refetch is the authority — this only skips the
+   * round-trip, it does not decide anything. Also keeps the overdue/due counts
+   * honest, since the header derives them from these same arrays.
+   */
+  const dismiss = useCallback((type: "opp" | "contact", id: string) => {
+    const drop = (items: TouchListItem[]) =>
+      items.filter((i) => !(i.type === type && i.id === id));
+    setDueNow(drop);
+    setComingUp(drop);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -165,5 +188,5 @@ export function useTouchList() {
     return () => { cancelled = true; };
   }, [refreshKey]);
 
-  return { dueNow, comingUp, loading, refetch };
+  return { dueNow, comingUp, loading, refetch, dismiss };
 }
