@@ -1624,6 +1624,14 @@ export type Database = {
           status: Database["public"]["Enums"]["opp_status"]
         }[]
       }
+      advance_stage_core: {
+        Args: { p_actor: string; p_opp_id: string; p_target_stage: string }
+        Returns: {
+          id: string
+          stage: string
+          status: Database["public"]["Enums"]["opp_status"]
+        }[]
+      }
       affirm_bid: {
         Args: { p_opp_id: string }
         Returns: {
@@ -1632,8 +1640,24 @@ export type Database = {
           status: Database["public"]["Enums"]["opp_status"]
         }[]
       }
+      assert_opportunity_access: {
+        Args: { p_opp_id: string }
+        Returns: undefined
+      }
+      assert_opportunity_access_for: {
+        Args: { p_actor: string; p_opp_id: string }
+        Returns: undefined
+      }
       close_opportunity_loss: {
         Args: { p_opp_id: string; p_reason: string }
+        Returns: {
+          id: string
+          stage: string
+          status: Database["public"]["Enums"]["opp_status"]
+        }[]
+      }
+      cowork_advance_stage: {
+        Args: { p_opp_id: string; p_owner: string; p_target_stage: string }
         Returns: {
           id: string
           stage: string
