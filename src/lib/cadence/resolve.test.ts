@@ -33,7 +33,7 @@ function makeOpp(overrides: Partial<OppRow> = {}): OppRow {
     project_tag: null, prevailing_wage: null, status: "OPEN",
     lost_reason: null, closed_loss_at: null, revisit_date: null, completed_at: null,
     completion_notes: null, final_value: null, expected_close_date: null,
-    win_probability: null, stage_entered_at: null, next_step: null,
+    win_probability: null, stage_entered_at: null, next_step: null, drive_folder_url: null,
     next_step_date: null, priority: null, competitor: null,
     gross_profit_pct: null,
     created_at: new Date().toISOString(), updated_at: null,

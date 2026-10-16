@@ -10,32 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -106,6 +81,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      agent_runs: {
+        Row: {
+          agent: string
+          errors: Json | null
+          finished_at: string | null
+          id: string
+          items: Json | null
+          log_url: string | null
+          started_at: string
+          status: string
+          summary: string | null
+        }
+        Insert: {
+          agent: string
+          errors?: Json | null
+          finished_at?: string | null
+          id?: string
+          items?: Json | null
+          log_url?: string | null
+          started_at?: string
+          status?: string
+          summary?: string | null
+        }
+        Update: {
+          agent?: string
+          errors?: Json | null
+          finished_at?: string | null
+          id?: string
+          items?: Json | null
+          log_url?: string | null
+          started_at?: string
+          status?: string
+          summary?: string | null
+        }
+        Relationships: []
       }
       bid_quotes: {
         Row: {
@@ -616,6 +627,115 @@ export type Database = {
           },
         ]
       }
+      estimates: {
+        Row: {
+          approved_price: number | null
+          area_label: string | null
+          cost_set: string
+          cove_lf: number | null
+          created_at: string
+          created_by: string | null
+          crew: number | null
+          extras_cost: number | null
+          flags: Json | null
+          hours_per_man: number | null
+          id: string
+          labor_cost: number | null
+          man_hours: number | null
+          material_cost: number | null
+          opportunity_id: string
+          overhead_cost: number | null
+          price_per_sf: number | null
+          pricing_sheet_url: string | null
+          recommended_price: number | null
+          source: string
+          square_feet: number | null
+          status: string
+          system: string
+          tier_prices: Json | null
+          total_cost: number | null
+          version: number
+        }
+        Insert: {
+          approved_price?: number | null
+          area_label?: string | null
+          cost_set?: string
+          cove_lf?: number | null
+          created_at?: string
+          created_by?: string | null
+          crew?: number | null
+          extras_cost?: number | null
+          flags?: Json | null
+          hours_per_man?: number | null
+          id?: string
+          labor_cost?: number | null
+          man_hours?: number | null
+          material_cost?: number | null
+          opportunity_id: string
+          overhead_cost?: number | null
+          price_per_sf?: number | null
+          pricing_sheet_url?: string | null
+          recommended_price?: number | null
+          source?: string
+          square_feet?: number | null
+          status?: string
+          system: string
+          tier_prices?: Json | null
+          total_cost?: number | null
+          version?: number
+        }
+        Update: {
+          approved_price?: number | null
+          area_label?: string | null
+          cost_set?: string
+          cove_lf?: number | null
+          created_at?: string
+          created_by?: string | null
+          crew?: number | null
+          extras_cost?: number | null
+          flags?: Json | null
+          hours_per_man?: number | null
+          id?: string
+          labor_cost?: number | null
+          man_hours?: number | null
+          material_cost?: number | null
+          opportunity_id?: string
+          overhead_cost?: number | null
+          price_per_sf?: number | null
+          pricing_sheet_url?: string | null
+          recommended_price?: number | null
+          source?: string
+          square_feet?: number | null
+          status?: string
+          system?: string
+          tier_prices?: Json | null
+          total_cost?: number | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimates_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimates_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "v_closing_this_month"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimates_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "v_stale_leaks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       facility_details: {
         Row: {
           budget_cycle: string | null
@@ -937,6 +1057,7 @@ export type Database = {
           completed_at: string | null
           completion_notes: string | null
           created_at: string
+          drive_folder_url: string | null
           expected_close_date: string | null
           final_value: number | null
           gross_profit_pct: number | null
@@ -968,6 +1089,7 @@ export type Database = {
           completed_at?: string | null
           completion_notes?: string | null
           created_at?: string
+          drive_folder_url?: string | null
           expected_close_date?: string | null
           final_value?: number | null
           gross_profit_pct?: number | null
@@ -999,6 +1121,7 @@ export type Database = {
           completed_at?: string | null
           completion_notes?: string | null
           created_at?: string
+          drive_folder_url?: string | null
           expected_close_date?: string | null
           final_value?: number | null
           gross_profit_pct?: number | null
@@ -1320,6 +1443,107 @@ export type Database = {
         }
         Relationships: []
       }
+      sub_quotes: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          file_url: string | null
+          id: string
+          is_selected: boolean
+          opportunity_id: string
+          price_per_sf: number | null
+          received_at: string | null
+          scope_notes: string | null
+          square_feet: number | null
+          sub_company_id: string | null
+          sub_name: string
+          system: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          file_url?: string | null
+          id?: string
+          is_selected?: boolean
+          opportunity_id: string
+          price_per_sf?: number | null
+          received_at?: string | null
+          scope_notes?: string | null
+          square_feet?: number | null
+          sub_company_id?: string | null
+          sub_name: string
+          system?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          file_url?: string | null
+          id?: string
+          is_selected?: boolean
+          opportunity_id?: string
+          price_per_sf?: number | null
+          received_at?: string | null
+          scope_notes?: string | null
+          square_feet?: number | null
+          sub_company_id?: string | null
+          sub_name?: string
+          system?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sub_quotes_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sub_quotes_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "v_closing_this_month"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sub_quotes_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "v_stale_leaks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sub_quotes_sub_company_id_fkey"
+            columns: ["sub_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sub_quotes_sub_company_id_fkey"
+            columns: ["sub_company_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_kpis"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "sub_quotes_sub_company_id_fkey"
+            columns: ["sub_company_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sub_quotes_sub_company_id_fkey"
+            columns: ["sub_company_id"]
+            isOneToOne: false
+            referencedRelation: "v_customer_concentration"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
       usaspending_cache: {
         Row: {
           agency: string | null
@@ -1573,6 +1797,22 @@ export type Database = {
         }
         Relationships: []
       }
+      v_price_points: {
+        Row: {
+          amount: number | null
+          observed_on: string | null
+          opportunity_id: string | null
+          opportunity_name: string | null
+          opportunity_status: Database["public"]["Enums"]["opp_status"] | null
+          party: string | null
+          pipeline: Database["public"]["Enums"]["pipeline_type"] | null
+          price_per_sf: number | null
+          source: string | null
+          square_feet: number | null
+          system: string | null
+        }
+        Relationships: []
+      }
       v_spread_to_low: {
         Row: {
           avg_spread: number | null
@@ -1818,6 +2058,7 @@ export type Database = {
         | "OWNER"
         | "ARCHITECT"
         | "GOVERNMENT_AGENCY"
+        | "SUBCONTRACTOR"
       contact_role:
         | "PM"
         | "ESTIMATOR"
@@ -1848,12 +2089,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1877,11 +2118,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1902,11 +2143,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1927,11 +2168,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1944,11 +2185,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1958,9 +2199,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       activity_type: ["CALL", "VISIT", "PREBID_WALK", "EMAIL", "NOTE"],
@@ -1971,6 +2209,7 @@ export const Constants = {
         "OWNER",
         "ARCHITECT",
         "GOVERNMENT_AGENCY",
+        "SUBCONTRACTOR",
       ],
       contact_role: [
         "PM",

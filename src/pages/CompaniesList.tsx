@@ -9,7 +9,7 @@ type CompanyType = Database["public"]["Enums"]["company_type"];
 
 const TYPE_LABELS: Record<CompanyType, string> = {
   GC: "GC", AWARDING_AUTHORITY: "Authority", OWNER: "Owner", ARCHITECT: "Architect",
-  GOVERNMENT_AGENCY: "Government Agency",
+  GOVERNMENT_AGENCY: "Government Agency", SUBCONTRACTOR: "Sub",
 };
 const TYPE_OPTIONS: { value: CompanyType; label: string }[] = [
   { value: "GC", label: "GC" },
@@ -17,6 +17,7 @@ const TYPE_OPTIONS: { value: CompanyType; label: string }[] = [
   { value: "OWNER", label: "Owner" },
   { value: "ARCHITECT", label: "Architect" },
   { value: "GOVERNMENT_AGENCY", label: "Government Agency" },
+  { value: "SUBCONTRACTOR", label: "Subcontractor" },
 ];
 
 function fmtDate(iso: string): string {

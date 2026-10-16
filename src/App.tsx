@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
+import PricingIntelPage from "./pages/PricingIntelPage";
+import AgentRunsPage from "./pages/AgentRunsPage";
 import AppShell from "./components/layout/AppShell";
 import DashboardPage from "./pages/DashboardPage";
 import OppsList from "./pages/OppsList";
@@ -140,6 +142,26 @@ function App() {
               <ProtectedRoute>
                 <AppShell>
                   <ImportsPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pricing"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <PricingIntelPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/agents"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <AgentRunsPage />
                 </AppShell>
               </ProtectedRoute>
             }
