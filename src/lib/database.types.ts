@@ -931,6 +931,7 @@ export type Database = {
       opportunities: {
         Row: {
           amount: number | null
+          closed_loss_at: string | null
           company_id: string
           competitor: string | null
           completed_at: string | null
@@ -961,6 +962,7 @@ export type Database = {
         }
         Insert: {
           amount?: number | null
+          closed_loss_at?: string | null
           company_id: string
           competitor?: string | null
           completed_at?: string | null
@@ -991,6 +993,7 @@ export type Database = {
         }
         Update: {
           amount?: number | null
+          closed_loss_at?: string | null
           company_id?: string
           competitor?: string | null
           completed_at?: string | null
@@ -1621,6 +1624,46 @@ export type Database = {
           status: Database["public"]["Enums"]["opp_status"]
         }[]
       }
+      advance_stage_core: {
+        Args: { p_actor: string; p_opp_id: string; p_target_stage: string }
+        Returns: {
+          id: string
+          stage: string
+          status: Database["public"]["Enums"]["opp_status"]
+        }[]
+      }
+      affirm_bid: {
+        Args: { p_opp_id: string }
+        Returns: {
+          id: string
+          stage: string
+          status: Database["public"]["Enums"]["opp_status"]
+        }[]
+      }
+      assert_opportunity_access: {
+        Args: { p_opp_id: string }
+        Returns: undefined
+      }
+      assert_opportunity_access_for: {
+        Args: { p_actor: string; p_opp_id: string }
+        Returns: undefined
+      }
+      close_opportunity_loss: {
+        Args: { p_opp_id: string; p_reason: string }
+        Returns: {
+          id: string
+          stage: string
+          status: Database["public"]["Enums"]["opp_status"]
+        }[]
+      }
+      cowork_advance_stage: {
+        Args: { p_opp_id: string; p_owner: string; p_target_stage: string }
+        Returns: {
+          id: string
+          stage: string
+          status: Database["public"]["Enums"]["opp_status"]
+        }[]
+      }
       cowork_create_opportunity: {
         Args: {
           p_amount?: number
@@ -1733,9 +1776,32 @@ export type Database = {
         }
         Returns: undefined
       }
+      planhub_import: {
+        Args: { import_key: string; payload: Json }
+        Returns: Json
+      }
+      planhub_log_run: {
+        Args: {
+          created: number
+          failed: number
+          found: number
+          import_key: string
+          skipped: number
+          updated: number
+        }
+        Returns: undefined
+      }
       set_competitor_bid_winner: {
         Args: { p_bid_id: string }
         Returns: undefined
+      }
+      set_opportunity_no_bid: {
+        Args: { p_no_bid?: boolean; p_opp_id: string }
+        Returns: {
+          id: string
+          stage: string
+          status: Database["public"]["Enums"]["opp_status"]
+        }[]
       }
       undo_complete: { Args: { p_opp_id: string }; Returns: undefined }
       valid_stage_for_pipeline: {
@@ -1759,7 +1825,13 @@ export type Database = {
         | "FM"
         | "PURCHASING"
         | "SPEC_WRITER"
-      opp_status: "OPEN" | "WON" | "LOST" | "NURTURE" | "DISQUALIFIED"
+      opp_status:
+        | "OPEN"
+        | "WON"
+        | "LOST"
+        | "NURTURE"
+        | "DISQUALIFIED"
+        | "NO_BID"
       pipeline_type: "PUBLIC_BID" | "GC_CHASE" | "FACILITY" | "FEDERAL"
     }
     CompositeTypes: {
@@ -1908,7 +1980,7 @@ export const Constants = {
         "PURCHASING",
         "SPEC_WRITER",
       ],
-      opp_status: ["OPEN", "WON", "LOST", "NURTURE", "DISQUALIFIED"],
+      opp_status: ["OPEN", "WON", "LOST", "NURTURE", "DISQUALIFIED", "NO_BID"],
       pipeline_type: ["PUBLIC_BID", "GC_CHASE", "FACILITY", "FEDERAL"],
     },
   },

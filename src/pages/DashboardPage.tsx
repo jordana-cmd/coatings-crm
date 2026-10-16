@@ -8,6 +8,7 @@ import { usePins } from "../hooks/usePins";
 import { useGoals } from "../hooks/useGoals";
 import { useTouchList, useSetNextAction } from "../hooks/useCadence";
 import { useQuickLog } from "../hooks/useQuickLog";
+import { useOppTriage } from "../hooks/useOppTriage";
 import { useAuth } from "../hooks/useAuth";
 // daysElapsedInYear/daysInYear available in config/constants if needed
 import { STAGE_LABELS, PIPELINE_LABELS } from "../lib/pipelines";
@@ -17,8 +18,10 @@ import type { TouchListItem } from "../lib/cadence";
 import type { Database } from "../lib/database.types";
 import KpiCard from "../components/dashboard/KpiCard";
 import QuickLogSheet from "../components/quick-log/QuickLogSheet";
+import CloseLossModal from "../components/opps/CloseLossModal";
+import type { LossReason } from "../lib/lossReasons";
 import { supabase } from "../lib/supabase";
-import { DollarSign, Target, Clock, CheckCircle2, Pencil, Phone, Star } from "lucide-react";
+import { DollarSign, Target, Clock, CheckCircle2, Pencil, Phone, Star, Check, Ban, XCircle, CalendarClock } from "lucide-react";
 
 type ActivityType = Database["public"]["Enums"]["activity_type"];
 
@@ -79,12 +82,31 @@ function GoalBar() {
 
 // ── Touch Row ──
 
-function TouchRow({ item, onLogTouch, onSetNext }: {
+/**
+ * Bid deadline display. Date-only comparison in UTC, matching how the cadence
+ * engine derives urgency from the same column — so a row can't read "overdue"
+ * in one place and "due today" in the other.
+ */
+function bidDueMeta(iso: string): { label: string; overdue: boolean } {
+  const day = iso.slice(0, 10);
+  return {
+    label: new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }),
+    overdue: day < new Date().toISOString().slice(0, 10),
+  };
+}
+
+function TouchRow({ item, onLogTouch, onSetNext, onBid, onNoBid, onCloseLoss, busy }: {
   item: TouchListItem;
   onLogTouch: (item: TouchListItem) => void;
   onSetNext: (item: TouchListItem) => void;
+  onBid: (item: TouchListItem) => Promise<boolean>;
+  onNoBid: (item: TouchListItem) => void;
+  onCloseLoss: (item: TouchListItem) => void;
+  busy: boolean;
 }) {
   const navigate = useNavigate();
+  const [bidAffirmed, setBidAffirmed] = useState(false);
+  const bidDue = item.bidDueAt ? bidDueMeta(item.bidDueAt) : null;
   const urgencyColor = item.nextAction.urgency === "overdue" ? "border-l-brand"
     : item.nextAction.urgency === "due_today" ? "border-l-pending"
     : "border-l-gray-300";
@@ -140,7 +162,16 @@ function TouchRow({ item, onLogTouch, onSetNext }: {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 mt-2.5">
+      {bidDue && (
+        <div className="mt-1 flex items-center gap-1">
+          <CalendarClock size={10} className={bidDue.overdue ? "text-brand" : "text-label"} />
+          <p className={`text-[10px] ${bidDue.overdue ? "text-brand font-semibold" : "text-label"}`}>
+            Bid due: {bidDue.label}{bidDue.overdue ? " · past due" : ""}
+          </p>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2 mt-2.5">
         <button onClick={() => onLogTouch(item)}
           className="flex items-center gap-1 rounded-md bg-brand text-white px-2.5 py-1.5 text-[11px] font-medium active:bg-brand-hover">
           <Phone size={11} /> Log touch
@@ -149,6 +180,28 @@ function TouchRow({ item, onLogTouch, onSetNext }: {
           className="flex items-center gap-1 rounded-md border border-gray-200 px-2.5 py-1.5 text-[11px] font-medium text-heading active:bg-gray-50">
           <Pencil size={11} /> Set next
         </button>
+
+        {/* Bid triage — opportunities only; contacts have no bid decision. */}
+        {item.type === "opp" && (
+          <>
+            <button onClick={async () => { if (await onBid(item)) setBidAffirmed(true); }}
+              disabled={busy}
+              className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium text-white
+                          disabled:opacity-50 ${bidAffirmed ? "bg-gate-met/70" : "bg-gate-met active:opacity-80"}`}>
+              <Check size={11} /> {bidAffirmed ? "Bidding" : "Bid"}
+            </button>
+            <button onClick={() => onNoBid(item)} disabled={busy}
+              className="flex items-center gap-1 rounded-md bg-gray-100 px-2.5 py-1.5 text-[11px] font-medium
+                         text-label active:bg-gray-200 disabled:opacity-50">
+              <Ban size={11} /> No Bid
+            </button>
+            <button onClick={() => onCloseLoss(item)} disabled={busy}
+              className="flex items-center gap-1 rounded-md border border-dq-border px-2.5 py-1.5 text-[11px]
+                         font-medium text-dq active:bg-dq-bg disabled:opacity-50">
+              <XCircle size={11} /> Close Loss
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -219,17 +272,50 @@ function ContactTouchModal({ contact, onSave, onClose }: {
 // ── Touch List Section ──
 
 function TouchListSection() {
-  const { dueNow, comingUp, loading, refetch } = useTouchList();
+  const { dueNow, comingUp, loading, refetch, dismiss } = useTouchList();
   const { setNextAction } = useSetNextAction();
   const { log } = useQuickLog();
   const { user } = useAuth();
+  const triage = useOppTriage();
   const [logTarget, setLogTarget] = useState<TouchListItem | null>(null);
   const [nextTarget, setNextTarget] = useState<TouchListItem | null>(null);
+  const [lossTarget, setLossTarget] = useState<TouchListItem | null>(null);
   const [showComingUp, setShowComingUp] = useState(false);
 
+  // Derived from dueNow, so an optimistic dismissal drops the count in the
+  // same render — no stale "10 overdue" over a 9-row list.
   const overdueItems = dueNow.filter((i) => i.nextAction.urgency === "overdue");
   const dueTodayItems = dueNow.filter((i) => i.nextAction.urgency === "due_today");
   const totalDue = dueNow.length;
+
+  /** Affirm the bid. The row stays put, so no dismissal and no refetch. */
+  const handleBid = async (item: TouchListItem) => {
+    const { error } = await triage.affirmBid(item.id);
+    return !error;
+  };
+
+  /** Pass on the deal — drop it from the list now, reconcile if the write fails. */
+  const handleNoBid = async (item: TouchListItem) => {
+    dismiss(item.type, item.id);
+    const { error } = await triage.setNoBid(item.id);
+    if (error) refetch();
+  };
+
+  const handleCloseLoss = async (reason: LossReason) => {
+    if (!lossTarget) return;
+    const { error } = await triage.closeLoss(lossTarget.id, reason);
+    if (error) return; // modal keeps the reason on screen with the error
+    dismiss(lossTarget.type, lossTarget.id);
+    setLossTarget(null);
+  };
+
+  const rowActions = {
+    onLogTouch: setLogTarget,
+    onSetNext: setNextTarget,
+    onBid: handleBid,
+    onNoBid: handleNoBid,
+    onCloseLoss: setLossTarget,
+  };
 
   const handleLogTouch = async (item: TouchListItem, input: {
     type: ActivityType; note?: string; contactId?: string; nextAction?: string; nextActionAt?: string;
@@ -292,6 +378,14 @@ function TouchListSection() {
           )}
         </div>
 
+        {/* Bid / No Bid failures — Close Loss surfaces its error inside the modal. */}
+        {triage.error && !lossTarget && (
+          <button onClick={triage.clearError}
+            className="w-full text-left text-xs text-dq bg-dq-bg border border-dq-border rounded-lg px-3 py-2 mb-3">
+            {triage.error} · tap to dismiss
+          </button>
+        )}
+
         {totalDue === 0 ? (
           <div className="text-center py-8">
             <CheckCircle2 size={32} className="text-gate-met mx-auto mb-2" />
@@ -306,7 +400,7 @@ function TouchListSection() {
                 <div className="space-y-2">
                   {overdueItems.map((item) => (
                     <TouchRow key={`${item.type}-${item.id}`} item={item}
-                      onLogTouch={setLogTarget} onSetNext={setNextTarget} />
+                      {...rowActions} busy={triage.pending === item.id} />
                   ))}
                 </div>
               </div>
@@ -317,7 +411,7 @@ function TouchListSection() {
                 <div className="space-y-2">
                   {dueTodayItems.map((item) => (
                     <TouchRow key={`${item.type}-${item.id}`} item={item}
-                      onLogTouch={setLogTarget} onSetNext={setNextTarget} />
+                      {...rowActions} busy={triage.pending === item.id} />
                   ))}
                 </div>
               </div>
@@ -335,7 +429,7 @@ function TouchListSection() {
               <div className="space-y-2 mt-3">
                 {comingUp.map((item) => (
                   <TouchRow key={`${item.type}-${item.id}`} item={item}
-                    onLogTouch={setLogTarget} onSetNext={setNextTarget} />
+                    {...rowActions} busy={triage.pending === item.id} />
                 ))}
               </div>
             )}
@@ -357,6 +451,13 @@ function TouchListSection() {
       {nextTarget && (
         <SetNextActionModal item={nextTarget} onSave={handleSetNext}
           onClose={() => setNextTarget(null)} />
+      )}
+      {lossTarget && (
+        <CloseLossModal oppName={lossTarget.name}
+          saving={triage.pending === lossTarget.id}
+          error={triage.error}
+          onSubmit={handleCloseLoss}
+          onClose={() => { triage.clearError(); setLossTarget(null); }} />
       )}
     </>
   );

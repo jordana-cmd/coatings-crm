@@ -41,4 +41,11 @@ export interface TouchListItem {
   stage: string | null; // opp stage; null for contacts
   lastContactedAt: string | null;
   nextAction: NextAction;
+  /**
+   * The deal's hard bid deadline, if it has one. Read from the extension row
+   * that already owns it — bids.bid_due_at (PUBLIC_BID/GC_CHASE) or
+   * federal_details.response_deadline (FEDERAL). Null for contacts and for
+   * FACILITY, which has no bid deadline.
+   */
+  bidDueAt: string | null;
 }

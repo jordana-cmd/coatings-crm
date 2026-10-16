@@ -1,6 +1,7 @@
 // cowork-write
 // Token-authed server-side write path for the Cowork agent. Fronts existing RPCs — never writes
 // tables directly. Three actions: create_opportunity, log_activity, advance_stage.
+// All three go through explicit-owner (p_owner) RPCs — no action relies on auth.uid().
 // Auth: X-Cowork-Token vs COWORK_WRITE_TOKEN. Acts as COWORK_WRITE_OWNER_ID. Deployed --no-verify-jwt.
 
 import { createClient } from "npm:@supabase/supabase-js@2.108.2";
@@ -141,7 +142,13 @@ Deno.serve(async (req: Request) => {
       if (!b.opportunity_id || !b.target_stage) {
         return jsonResponse({ ok: false, action, error: "opportunity_id and target_stage are required" }, 400);
       }
-      const { data, error } = await admin.rpc("advance_stage", {
+      // cowork_advance_stage, not advance_stage: this is a service-role call with
+      // no user JWT, so auth.uid() is NULL and advance_stage now refuses a NULL
+      // actor (migration 00085). Acting as p_owner also attributes the resulting
+      // opportunity_stage_history row instead of leaving changed_by NULL —
+      // same explicit-owner pattern as the two actions above.
+      const { data, error } = await admin.rpc("cowork_advance_stage", {
+        p_owner: owner,
         p_opp_id: b.opportunity_id,
         p_target_stage: b.target_stage, // passed through untransformed
       });
