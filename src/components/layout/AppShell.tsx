@@ -13,6 +13,8 @@ import {
   Inbox,
   Bell,
   Settings,
+  DollarSign,
+  Bot,
   LogOut,
   Menu,
   X,
@@ -24,9 +26,11 @@ const NAV_ITEMS = [
   { label: "Companies", path: "/companies", icon: Building2 },
   { label: "Contacts", path: "/contacts", icon: Users },
   { label: "Reports", path: "/reports", icon: BarChart3 },
+  { label: "Pricing", path: "/pricing", icon: DollarSign },
   { label: "Goals", path: "/goals", icon: Target },
   { label: "Calendar", path: "/calendar", icon: CalendarDays },
   { label: "Imports", path: "/imports", icon: Inbox },
+  { label: "Agents", path: "/agents", icon: Bot, desktopOnly: true },
 ];
 
 function SidebarContent({ current, onNav }: { current: string; onNav: (p: string) => void }) {
@@ -150,7 +154,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 bg-shell border-t border-shell-border flex z-40">
-        {NAV_ITEMS.map((item) => {
+        {NAV_ITEMS.filter((item) => !("desktopOnly" in item && item.desktopOnly)).map((item) => {
           const active = location.pathname === item.path;
           const Icon = item.icon;
           return (

@@ -15,7 +15,7 @@ type OppRow = Database["public"]["Tables"]["opportunities"]["Row"];
 
 const ROLE_LABELS: Record<ContactRole, string> = { PM: "PM", ESTIMATOR: "Estimator", SUPER: "Super", FM: "FM", PURCHASING: "Purchasing", SPEC_WRITER: "Spec Writer" };
 const ROLE_OPTIONS: ContactRole[] = ["PM", "ESTIMATOR", "SUPER", "FM", "PURCHASING", "SPEC_WRITER"];
-const TYPE_LABELS: Record<string, string> = { GC: "General Contractor", AWARDING_AUTHORITY: "Awarding Authority", OWNER: "Owner", ARCHITECT: "Architect", GOVERNMENT_AGENCY: "Government Agency" };
+const TYPE_LABELS: Record<string, string> = { GC: "General Contractor", AWARDING_AUTHORITY: "Awarding Authority", OWNER: "Owner", ARCHITECT: "Architect", GOVERNMENT_AGENCY: "Government Agency", SUBCONTRACTOR: "Subcontractor" };
 const TYPE_OPTIONS: { value: CompanyType; label: string }[] = [
   { value: "GC", label: "GC" }, { value: "AWARDING_AUTHORITY", label: "Awarding Authority" },
   { value: "OWNER", label: "Plant Owner" }, { value: "ARCHITECT", label: "Architect" },

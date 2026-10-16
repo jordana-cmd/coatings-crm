@@ -24,6 +24,8 @@ import CloseLossModal from "../components/opps/CloseLossModal";
 import type { LossReason } from "../lib/lossReasons";
 import { supabase } from "../lib/supabase";
 import { Trash2, XCircle } from "lucide-react";
+import { useJobPricing } from "../hooks/usePricingIntel";
+import JobPricingCard from "../components/opps/JobPricingCard";
 
 type OppUpdate = Database["public"]["Tables"]["opportunities"]["Update"];
 
@@ -506,6 +508,7 @@ export default function OppDetail() {
   const bidQuotes = useBidQuotes(isPublicBid ? id : undefined);
   const oppDocs = useOppDocuments(id);
   const competitorBids = useCompetitorBids(id);
+  const jobPricing = useJobPricing(id);
   const federal = useFederalDetails(id ?? "", refetch);
 
   if (loading) {
@@ -696,6 +699,9 @@ export default function OppDetail() {
           </p>
         </div>
       )}
+
+      {/* Pricing runs, sub quotes and the Drive job folder */}
+      <JobPricingCard pricing={jobPricing} driveFolderUrl={opp.drive_folder_url} ourAmount={opp.amount} />
 
       {/* Competitor Bids — Lost deals only. advance_stage couples status to
           stage, but StageTracker keys off stage, so match that. */}

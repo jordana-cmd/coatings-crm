@@ -32,6 +32,7 @@ function makeOppWithoutBids(overrides: Partial<OppRow> = {}): OppForGates {
     final_value: null,
     expected_close_date: null,
     win_probability: null,
+    drive_folder_url: null,
     stage_entered_at: null,
     next_step: null,
     next_step_date: null,
