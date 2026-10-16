@@ -7,6 +7,13 @@
 //   Per-item failures are reported without failing the batch.
 
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.108.2";
+import {
+  CONSTRUCTION_NAICS_PREFIX,
+  isOpenConstructionNotice,
+  isRepeatPage,
+  shouldFetchNextPage,
+  VETERAN_SET_ASIDES,
+} from "../_shared/samGovQueries.ts";
 
 // Production v2 search has no "/prod/" path segment — that segment only
 // exists on the deprecated v1 path and the api-alpha.sam.gov test host.
@@ -15,9 +22,14 @@ import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.1
 const SAM_GOV_BASE = "https://api.sam.gov/opportunities/v2/search";
 
 interface SamGovQuery {
-  ncode: string;
+  /** Exact 6-digit NAICS. Omitted for the veteran set-aside pass. */
+  ncode?: string;
   title?: string;
   typeOfSetAside?: string;
+  /** Page through results (limit 1000 per page) up to this many pages. Default 1 page of 100. */
+  maxPages?: number;
+  /** Client-side keep filter applied to each returned item. */
+  keep?: (item: Record<string, unknown>) => boolean;
 }
 
 const FLOORING_QUERIES: SamGovQuery[] = [
@@ -40,18 +52,25 @@ const ROOFING_QUERIES: SamGovQuery[] = [
   { ncode: "238160", title: "roof replacement" },
 ];
 
-// SAM.gov's documented ncode param is max 6 digits — this 2-digit sector
-// code is unverified against that constraint and may itself 400 even with
-// the URL fixed. Flagged, not changed here: not the reported failure since
-// the 6-digit FLOORING_QUERIES failed identically before the URL fix.
-const SDVOSB_QUERIES: SamGovQuery[] = [
-  { ncode: "23", typeOfSetAside: "SDVOSBC" },
-  { ncode: "23", typeOfSetAside: "SDVOSBS" },
-  { ncode: "23", typeOfSetAside: "VSA" },
-  { ncode: "23", typeOfSetAside: "VSS" },
-];
+// Every open SDVOSB / VA-veteran set-aside in construction (NAICS 23xxxx —
+// building, heavy/civil and specialty trades), floor scope or not.
+// SAM.gov's ncode is an exact 6-digit match, so the old ncode="23" queries
+// matched nothing and silently returned zero rows. Query by set-aside only,
+// page through, and narrow to construction NAICS client-side.
+const SDVOSB_MAX_PAGES = 5; // ≤ 20 requests per run across the 4 set-asides
+const SDVOSB_QUERIES: SamGovQuery[] = VETERAN_SET_ASIDES.map((code) => ({
+  typeOfSetAside: code,
+  maxPages: SDVOSB_MAX_PAGES,
+  keep: (item: Record<string, unknown>) => isOpenConstructionNotice(item, new Date()),
+}));
 
 const ALL_QUERIES: SamGovQuery[] = [...FLOORING_QUERIES, ...ROOFING_QUERIES, ...SDVOSB_QUERIES];
+
+/** NAICS recorded on each sam_gov_sync_log row. "23xxxx" marks the set-aside pass's client-side construction filter. */
+const LOGGED_NAICS_CODES: string[] = [
+  ...new Set([...FLOORING_QUERIES, ...ROOFING_QUERIES].map((q) => q.ncode!).filter(Boolean)),
+  `${CONSTRUCTION_NAICS_PREFIX}xxxx`,
+];
 
 interface PreviewItem {
   solicitationNumber: string;
@@ -108,6 +127,7 @@ function fmtDate(d: Date): string {
 interface QueryResult {
   items: Record<string, unknown>[];
   runError: RunError | null;
+  requests: number;
 }
 
 async function runQuery(
@@ -116,46 +136,76 @@ async function runQuery(
   postedFrom: string,
   postedTo: string
 ): Promise<QueryResult> {
-  const params = new URLSearchParams({
-    api_key: apiKey,
-    ncode: q.ncode,
-    active: "Yes",
-    limit: "100",
-    postedFrom,
-    postedTo,
-  });
-  if (q.title) params.set("title", q.title);
-  if (q.typeOfSetAside) params.set("typeOfSetAside", q.typeOfSetAside);
+  const maxPages = q.maxPages ?? 1;
+  const pageSize = maxPages > 1 ? 1000 : 100;
 
   // Redacted label for logs/errors — never includes api_key.
-  const label = `ncode=${q.ncode}${q.title ? ` title=${q.title}` : ""}${q.typeOfSetAside ? ` setAside=${q.typeOfSetAside}` : ""}`;
+  const label = `${q.ncode ? `ncode=${q.ncode}` : `naics=${CONSTRUCTION_NAICS_PREFIX}xxxx(client-side)`}${q.title ? ` title=${q.title}` : ""}${q.typeOfSetAside ? ` setAside=${q.typeOfSetAside}` : ""}`;
 
-  try {
-    const res = await fetch(`${SAM_GOV_BASE}?${params.toString()}`);
-    if (!res.ok) {
-      const bodyText = await res.text().catch(() => "");
-      logEvent("samgov_request", { query: label, samStatus: res.status, totalRecords: null });
-      return {
-        items: [],
-        runError: {
-          context: "search",
-          query: label,
-          samStatus: res.status,
-          error: bodyText ? `HTTP ${res.status}: ${bodyText.slice(0, 300)}` : `HTTP ${res.status}`,
-        },
-      };
-    }
-    const json = await res.json();
-    const totalRecords = typeof json.totalRecords === "number" ? json.totalRecords : null;
-    logEvent("samgov_request", { query: label, samStatus: res.status, totalRecords });
-    return {
-      items: Array.isArray(json.opportunitiesData) ? json.opportunitiesData : [],
-      runError: null,
+  const items: Record<string, unknown>[] = [];
+  const seenIds = new Set<string>();
+  // SAM.gov documents `offset` as a page index. If page 1 comes back as mostly
+  // a repeat of page 0, the API is treating it as a record offset instead —
+  // switch to offset = page × limit and re-request that page (one extra call).
+  let recordOffsets = false;
+  let requests = 0;
+  for (let page = 0; page < maxPages; page++) {
+    const buildUrl = () => {
+      const params = new URLSearchParams({
+        api_key: apiKey,
+        active: "Yes",
+        limit: String(pageSize),
+        offset: String(recordOffsets ? page * pageSize : page),
+        postedFrom,
+        postedTo,
+      });
+      if (q.ncode) params.set("ncode", q.ncode);
+      if (q.title) params.set("title", q.title);
+      if (q.typeOfSetAside) params.set("typeOfSetAside", q.typeOfSetAside);
+      return `${SAM_GOV_BASE}?${params.toString()}`;
     };
-  } catch (e) {
-    logEvent("samgov_request", { query: label, samStatus: null, totalRecords: null, error: String(e) });
-    return { items: [], runError: { context: "search", query: label, samStatus: null, error: String(e) } };
+
+    requests += 1;
+    try {
+      let res = await fetch(buildUrl());
+      if (res.ok && page === 1 && !recordOffsets) {
+        const probe = await res.clone().json().catch(() => null);
+        const probeItems: Record<string, unknown>[] = Array.isArray(probe?.opportunitiesData) ? probe.opportunitiesData : [];
+        if (isRepeatPage(seenIds, probeItems.map((it) => String(it.noticeId ?? "")))) {
+          recordOffsets = true;
+          logEvent("samgov_offset_mode", { query: label, mode: "record" });
+          requests += 1;
+          res = await fetch(buildUrl());
+        }
+      }
+      if (!res.ok) {
+        const bodyText = await res.text().catch(() => "");
+        logEvent("samgov_request", { query: label, page, samStatus: res.status, totalRecords: null });
+        return {
+          items,
+          requests,
+          runError: {
+            context: "search",
+            query: page > 0 ? `${label} page=${page}` : label,
+            samStatus: res.status,
+            error: bodyText ? `HTTP ${res.status}: ${bodyText.slice(0, 300)}` : `HTTP ${res.status}`,
+          },
+        };
+      }
+      const json = await res.json();
+      const totalRecords = typeof json.totalRecords === "number" ? json.totalRecords : null;
+      const pageItems: Record<string, unknown>[] = Array.isArray(json.opportunitiesData) ? json.opportunitiesData : [];
+      for (const it of pageItems) if (typeof it.noticeId === "string") seenIds.add(it.noticeId);
+      const kept = q.keep ? pageItems.filter(q.keep) : pageItems;
+      items.push(...kept);
+      logEvent("samgov_request", { query: label, page, samStatus: res.status, totalRecords, returned: pageItems.length, kept: kept.length });
+      if (!shouldFetchNextPage(page, pageSize, pageItems.length, totalRecords, maxPages)) break;
+    } catch (e) {
+      logEvent("samgov_request", { query: label, page, samStatus: null, totalRecords: null, error: String(e) });
+      return { items, requests, runError: { context: "search", query: label, samStatus: null, error: String(e) } };
+    }
   }
+  return { items, requests, runError: null };
 }
 
 async function fetchDescription(apiKey: string, descriptionUrl: string): Promise<string | null> {
@@ -384,13 +434,24 @@ Deno.serve(async (req) => {
     let failedQueries = 0;
     const errors: RunError[] = [];
     const rawItems: Record<string, unknown>[] = [];
+    // Solicitations surfaced by a flooring/roofing query (vs. only by the broad
+    // veteran set-aside pass). Only these get the extra description fetch —
+    // the set-aside pass can return hundreds of notices, and one description
+    // request each would burn the 1,000/day key quota and the function's time
+    // budget. Set-aside-only rows import fine with a null description.
+    const tradeQuerySolicitations = new Set<string>();
 
     for (const q of ALL_QUERIES) {
-      const { items, runError } = await runQuery(samApiKey, q, postedFrom, postedTo);
-      requestsUsed += 1;
+      const { items, runError, requests } = await runQuery(samApiKey, q, postedFrom, postedTo);
+      requestsUsed += requests;
       if (runError) {
         errors.push(runError);
         failedQueries += 1;
+      }
+      if (!q.typeOfSetAside) {
+        for (const it of items) {
+          if (typeof it.solicitationNumber === "string") tradeQuerySolicitations.add(it.solicitationNumber);
+        }
       }
       rawItems.push(...items);
     }
@@ -411,7 +472,7 @@ Deno.serve(async (req) => {
         totalErrors: errors.length,
         outcome: "total_failure",
       });
-      const naicsCodes = [...new Set(ALL_QUERIES.map((q) => q.ncode))];
+      const naicsCodes = LOGGED_NAICS_CODES;
       const setAsides = [...new Set(SDVOSB_QUERIES.map((q) => q.typeOfSetAside!))];
       await adminClient.from("sam_gov_sync_log").insert({
         synced_by: userId,
@@ -433,7 +494,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Dedupe across all 12 queries by solicitationNumber (a title can match more than one).
+    // Dedupe across all queries by solicitationNumber (a title can match more than one).
     const bySolicitation = new Map<string, Record<string, unknown>>();
     for (const item of rawItems) {
       const sol = item.solicitationNumber;
@@ -444,11 +505,14 @@ Deno.serve(async (req) => {
     // Cross-check against existing federal_details.solicitation_number.
     const solicitationNumbers = [...bySolicitation.keys()];
     const existing = new Set<string>();
-    if (solicitationNumbers.length > 0) {
+    // Chunked: the veteran set-aside pass can return hundreds of solicitation
+    // numbers, and one giant `in` filter would overflow the request URL.
+    for (let i = 0; i < solicitationNumbers.length; i += 100) {
+      const chunk = solicitationNumbers.slice(i, i + 100);
       const { data: existingRows, error: existErr } = await adminClient
         .from("federal_details")
         .select("solicitation_number")
-        .in("solicitation_number", solicitationNumbers);
+        .in("solicitation_number", chunk);
       if (existErr) {
         errors.push({ context: "dedup-check", query: null, samStatus: null, error: existErr.message });
       } else {
@@ -464,7 +528,7 @@ Deno.serve(async (req) => {
     const preview: PreviewItem[] = [];
     for (const [sol, item] of newItems) {
       let descriptionText: string | null = null;
-      if (typeof item.description === "string" && item.description) {
+      if (tradeQuerySolicitations.has(sol) && typeof item.description === "string" && item.description) {
         descriptionText = await fetchDescription(samApiKey, item.description);
         requestsUsed += 1;
         if (descriptionText === null) {
@@ -521,7 +585,7 @@ Deno.serve(async (req) => {
     });
 
     // Log the run (visibility into daily SAM.gov request usage, 1000/day limit).
-    const naicsCodes = [...new Set(ALL_QUERIES.map((q) => q.ncode))];
+    const naicsCodes = LOGGED_NAICS_CODES;
     const setAsides = [...new Set(SDVOSB_QUERIES.map((q) => q.typeOfSetAside!))];
     const { error: logError } = await adminClient.from("sam_gov_sync_log").insert({
       synced_by: userId,
