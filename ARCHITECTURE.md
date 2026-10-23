@@ -1,6 +1,6 @@
 # Coatings CRM — Architecture
 
-A single-tenant sales CRM for a commercial flooring & coatings contractor (Motor City Floors,
+A single-tenant sales CRM for a commercial flooring & coatings contractor (MotorCity Floors,
 Metro Detroit). Four bid "motions" — **public bid, GC chase, facility, and federal/GovCon** — flow
 through one opportunity model with pipeline-specific extension tables, a Postgres-enforced stage
 machine, and three external ingest paths (SAM.gov, Claude, PlanHub).

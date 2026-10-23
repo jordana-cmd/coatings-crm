@@ -33,7 +33,7 @@ function SidebarContent({ current, onNav }: { current: string; onNav: (p: string
   return (
     <>
       <div className="px-5 py-6">
-        <p className="text-white font-bold text-sm leading-tight">Motor City</p>
+        <p className="text-white font-bold text-sm leading-tight">MotorCity</p>
         <p className="text-brand text-xs font-semibold">Floors & Coatings</p>
       </div>
       <nav className="flex-1 px-3 space-y-0.5">

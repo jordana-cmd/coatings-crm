@@ -59,7 +59,7 @@ const SCORING_SCHEMA = {
 // ── Company profile the scorer evaluates against ──
 // Review and tune this — the scoring is only as good as this profile.
 const COMPANY_PROFILE = `Company profile (evaluate the opportunity against this):
-- Motor City Floors & Coatings — commercial/industrial flooring contractor based in Metro Detroit, Michigan.
+- MotorCity Floors & Coatings — commercial/industrial flooring contractor based in Metro Detroit, Michigan.
 - Self-perform scope: resinous flooring systems (epoxy, urethane cement, MMA), concrete coatings, concrete polishing, and associated surface prep. NOT general construction, roofing, painting of walls/structures, or civil work — flooring-adjacent scope only.
 - Typical self-perform project size: roughly $25,000 to $500,000. Jobs up to ~$1M are feasible; above that requires teaming and scores lower on magnitude fit.
 - Service area: Michigan is home turf; the surrounding Midwest (OH, IN, IL, WI, MN) is workable with travel; beyond that geography fit drops quickly.

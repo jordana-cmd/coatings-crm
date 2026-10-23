@@ -50,7 +50,7 @@ export interface CompanyProfile {
 }
 
 export const COMPANY_PROFILE: CompanyProfile = {
-  companyName: "Motor City Floors & Coatings",
+  companyName: "MotorCity Floors & Coatings",
   certification: "SDVOSB",
   setAsideCodes: ["SDVOSBC", "SDVOSBS", "VSA", "VSS"],
   bidsFullAndOpen: true,

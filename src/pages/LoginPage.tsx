@@ -31,7 +31,7 @@ export default function LoginPage() {
     <div className="min-h-svh flex items-center justify-center bg-page p-4">
       <form onSubmit={handleSubmit} className="w-full max-w-sm bg-card rounded-2xl shadow-2xl p-8">
         <div className="text-center mb-6">
-          <h1 className="text-xl font-bold text-heading">Motor City Floors</h1>
+          <h1 className="text-xl font-bold text-heading">MotorCity Floors</h1>
           <p className="text-xs text-brand font-semibold">& Coatings</p>
         </div>
 

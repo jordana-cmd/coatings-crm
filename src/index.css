@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
 /*
- * Motor City Floors & Coatings — Design Tokens (Tailwind v4 @theme)
+ * MotorCity Floors & Coatings — Design Tokens (Tailwind v4 @theme)
  *
  * Shell: dark matte charcoal sidebar + topbar
  * Content area: soft warm neutral so white cards float elegantly
- * Brand: Motor City red #db0000
+ * Brand: MotorCity red #db0000
  */
 
 @theme {
